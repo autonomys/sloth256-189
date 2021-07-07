@@ -35,7 +35,7 @@ raise input to ((2**256-189)+1)/4'th power [with dedicated addition chain]
 square the result and compare to the input
 conditionally negate the result accordingly
 ```
-Code path is selected at compile time in `<top>/build.rs`, which detects
+Code path is selected at compile time in `build.rs`, which detects
 ADX extension availability, and adds `assembly.S` or
 `win64/mod256-189-x86_64.asm` to build sequence depending on whether or
 not one uses non-Microsoft or Microsoft compiler. In former case the
@@ -43,3 +43,9 @@ not one uses non-Microsoft or Microsoft compiler. In former case the
 by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
 The ADX detection can be suppressed with `--features portable` at cargo
 command line.
+
+The assembly modules are generated from single Perl script,
+`src/mod256-189-x86_64.pl`, by executing `src/refresh.sh`. It's assumed
+that dependency on Perl in undesired. Otherwise this step can be moved
+to `build.rs`, in which case one would remove all subdirectories in
+`src` and have cargo recreate them during the build phase.
