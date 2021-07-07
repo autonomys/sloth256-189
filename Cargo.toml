@@ -1,0 +1,30 @@
+[package]
+name = "sloth256-189"
+version = "0.1.0"
+description = "Encoder/decoder for the Subspace Network Blockchain based on the SLOTH permutation"
+edition = "2018"
+license = "MIT"
+repository = "https://github.com/dot-asm/sloth256-189"
+include = [
+    "/src",
+    "/Cargo.toml",
+]
+
+[features]
+default = []
+portable = []
+force-adx = []
+
+[build-dependencies]
+cc = "1.0"
+glob = "0.3"
+
+[dev-dependencies]
+criterion = "0.3.4"
+rand = "0.8.3"
+rayon = "1.5.1"
+spartan-sloth = { git  = "https://github.com/subspace/spartan-codec.git" }
+
+[[bench]]
+name = "software"
+harness = false

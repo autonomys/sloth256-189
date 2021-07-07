@@ -1,0 +1,5 @@
+Cargo.lock
+target
+*.o
+*.ptx
+a.out
