@@ -48,4 +48,5 @@ The assembly modules are generated from single Perl script,
 `src/mod256-189-x86_64.pl`, by executing `src/refresh.sh`. It's assumed
 that dependency on Perl is undesired. Otherwise this step can be moved
 to `build.rs`, in which case one would remove all subdirectories in
-`src` and have cargo recreate them during the build phase.
+`src` and have cargo recreate the assembly modules during the build
+phase.
