@@ -16,20 +16,20 @@ Software/Decode          time:   [1.5111 us 1.5115 us 1.5120 us]  30x
 ```
 #if defined(__ADX__) && !defined(__SLOTH_PORTABLE__)
  x86_64 assembly-assisted code path, executed on processors with ADX
- ISA extenstion.
+ ISA extension.
  Field element is represented as 4 64-bit limbs.
 #elif __SIZEOF_INT128__-0==16
  Any 64-bit platform with compiler that supports __int128 type, such
- as comtemporary gcc or clang, not not Microsoft C.
+ as contemporary gcc or clang, but not Microsoft C.
  Field element is represented as 5 limbs, 1st is 52- and the rest are
  51-bit values.
 #else
  Fallback for everything else.
- Field element is represtented as 12 limbs, mixture of 22- and 21-bit
- values [with last one being 19-bits].
+ Field element is represented as 12 limbs, a mixture of 22- and 21-bit
+ values [with the last one being 19 bits].
 #endif
 ```
-All three code paths use the same pattern for the sqrt operation:
+All three code paths follow the same pattern for the sqrt operation:
 ```
 raise input to ((2**256-189)+1)/4'th power [with dedicated addition chain]
 square the result and compare to the input
@@ -38,7 +38,7 @@ conditionally negate the result accordingly
 Code path is selected at compile time in `build.rs`, which detects
 ADX extension availability, and adds `assembly.S` or
 `win64/mod256-189-x86_64.asm` to build sequence depending on whether or
-not one uses non-Microsoft or Microsoft compiler. In former case the
+not one uses a non-Microsoft or Microsoft compiler. In former case the
 `assembly.S` makes the choice among `coff` (used by MinGW), `elf` (used
 by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
 The ADX detection can be suppressed with `--features portable` at cargo
@@ -46,6 +46,6 @@ command line.
 
 The assembly modules are generated from single Perl script,
 `src/mod256-189-x86_64.pl`, by executing `src/refresh.sh`. It's assumed
-that dependency on Perl in undesired. Otherwise this step can be moved
+that dependency on Perl is undesired. Otherwise this step can be moved
 to `build.rs`, in which case one would remove all subdirectories in
 `src` and have cargo recreate them during the build phase.
