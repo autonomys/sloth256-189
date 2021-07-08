@@ -39,14 +39,25 @@ Code path is selected at compile time in `build.rs`, which detects
 ADX extension availability, and adds `assembly.S` or
 `win64/mod256-189-x86_64.asm` to build sequence depending on whether or
 not one uses a non-Microsoft or Microsoft compiler. In former case the
-`assembly.S` makes the choice among `coff` (used by MinGW), `elf` (used
+`assembly.S` makes further choice among `coff` (used by MinGW), `elf` (used
 by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
 The ADX detection can be suppressed with `--features portable` at cargo
 command line.
 
 The assembly modules are generated from single Perl script,
 `src/mod256-189-x86_64.pl`, by executing `src/refresh.sh`. It's assumed
-that dependency on Perl is undesired. Otherwise this step can be moved
-to `build.rs`, in which case one would remove all subdirectories in
-`src` and have cargo recreate the assembly modules during the build
-phase.
+that dependency on Perl is undesired. Most notably Perl is not
+customarily installed on Windows. Otherwise this step could be moved to
+`build.rs`, in which case one would remove all subdirectories in `src`
+and have cargo recreate the assembly modules during the build phase.
+
+Field multiplication is performed approximately as following:
+```
+uint512 temp = a * b
+temp = lo256(temp) + hi256(temp)*189
+temp = lo256(temp) + hi8(temp)*189
+return lo256(temp) + hi1(temp)*189
+```
+"Approximately" refers to the fact that in sparse representations
+`lo256()` and `hi256()` are not exact, nor explicit in the
+implementation.
