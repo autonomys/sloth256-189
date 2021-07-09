@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use rand::Rng;
 
 const PRIME: &str =
@@ -10,6 +12,7 @@ fn random_bytes<const BYTES: usize>() -> [u8; BYTES] {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn spartan_orig_vs_asm() {
     let sloth_orig: spartan_sloth::software::Sloth<32, 4096> =
         spartan_sloth::software::Sloth::with_prime(PRIME.parse().unwrap());
