@@ -4,6 +4,7 @@ extern crate cc;
 
 use std::env;
 use std::path::{Path, PathBuf};
+use which::which;
 
 #[cfg(target_env = "msvc")]
 fn assembly(files: &mut Vec<PathBuf>) {
@@ -61,4 +62,35 @@ fn main() {
         cc.opt_level(3);
     }
     cc.files(&files).compile("libsloth256_189.a");
+
+    // Detect if there is CUDA compiler and engage "cuda" feature accordingly
+    let nvcc = match env::var("NVCC") {
+        Ok(var) => Ok(PathBuf::from(var)),
+        Err(_) => which::which("nvcc"),
+    };
+    match nvcc {
+        Err(_) => (),
+        Ok(p) => {
+            let nvhome = p.parent().unwrap().parent().unwrap();
+
+            cc::Build::new()
+                .cuda(true)
+                .files(vec![PathBuf::from("src/sloth256_189.cu")])
+                .compile("libsloth256_189_cuda.a");
+
+            if nvhome.is_dir() {
+                let str = nvhome.to_str().unwrap();
+                #[cfg(target_os = "linux")]
+                println!(
+                    "cargo:rustc-link-search=native={}/targets/{}-linux/lib",
+                    str,
+                    target_arch.as_str()
+                );
+                #[cfg(target_os = "windows")]
+                println!("cargo:rustc-link-search=native={}\\lib\\x64", str);
+            }
+            println!("cargo:rustc-link-lib=cudart");
+            println!("cargo:rustc-cfg=feature=\"cuda\"");
+        }
+    }
 }

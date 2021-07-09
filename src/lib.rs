@@ -15,6 +15,7 @@ extern "C" {
         iv_: *const u8,
         layers: usize,
     );
+    pub fn detect_cuda() -> bool;
 }
 
 #[derive(Debug)]
@@ -492,5 +493,11 @@ mod tests {
         sloth.decode(&mut decoding, expanded_iv, layers);
 
         assert_eq!(piece.to_vec(), decoding.to_vec());
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn test_cuda() {
+        assert_eq!(unsafe { detect_cuda() }, true);
     }
 }
