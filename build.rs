@@ -65,13 +65,13 @@ fn main() {
 
     // Detect if there is CUDA compiler and engage "cuda" feature accordingly
     let nvcc = match env::var("NVCC") {
-        Ok(var) => Ok(PathBuf::from(var)),
+        Ok(var) => which::which(var),
         Err(_) => which::which("nvcc"),
     };
     match nvcc {
         Err(_) => (),
         Ok(p) => {
-            let nvhome = p.parent().unwrap().parent().unwrap();
+            let nvhome = p.parent().unwrap_or(&p).parent().unwrap_or(&p);
 
             cc::Build::new()
                 .cuda(true)
