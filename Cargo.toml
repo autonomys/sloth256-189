@@ -12,8 +12,7 @@ include = [
 
 [features]
 default = []
-portable = []
-force-adx = []
+no-asm = []
 
 [build-dependencies]
 cc = "1.0"
