@@ -14,7 +14,7 @@ Software/Decode          time:   [1.5111 us 1.5115 us 1.5120 us]  30x
 
 `sqrt_mod_256_189/square_mod_256_189` comes in three "flavours":
 ```
-#if defined(__ADX__) && !defined(__SLOTH_PORTABLE__)
+#if detected(__ADX__)
  x86_64 assembly-assisted code path, executed on processors with ADX
  ISA extension.
  Field element is represented as 4 64-bit limbs.
@@ -35,14 +35,13 @@ raise input to ((2**256-189)+1)/4'th power [with dedicated addition chain]
 square the result and compare to the input
 conditionally negate the result accordingly
 ```
-Code path is selected at compile time in `build.rs`, which detects
-ADX extension availability, and adds `assembly.S` or
+ADX code path is selected at run time. For testing purposes assembly
+support can be suppressed with `--features no-asm` at cargo command
+line. Otherwise `build.rs` adds `assembly.S` or
 `win64/mod256-189-x86_64.asm` to build sequence depending on whether or
 not one uses a non-Microsoft or Microsoft compiler. In former case the
 `assembly.S` makes further choice among `coff` (used by MinGW), `elf` (used
 by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
-The ADX detection can be suppressed with `--features portable` at cargo
-command line.
 
 The assembly modules are generated from single Perl script,
 `src/mod256-189-x86_64.pl`, by executing `src/refresh.sh`. It's assumed
