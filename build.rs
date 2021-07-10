@@ -71,22 +71,20 @@ fn main() {
     match nvcc {
         Err(_) => (),
         Ok(p) => {
-            let nvhome = p.parent().unwrap_or(&p).parent().unwrap_or(&p);
-
             cc::Build::new()
                 .cuda(true)
                 .files(vec![PathBuf::from("src/sloth256_189.cu")])
                 .compile("libsloth256_189_cuda.a");
 
+            let nvhome = p.parent().unwrap_or(&p).parent().unwrap_or(&p);
             if nvhome.is_dir() {
                 let str = nvhome.to_str().unwrap();
                 #[cfg(target_os = "linux")]
                 println!(
                     "cargo:rustc-link-search=native={}/targets/{}-linux/lib",
-                    str,
-                    target_arch.as_str()
+                    str, target_arch
                 );
-                #[cfg(target_os = "windows")]
+                #[cfg(all(target_env = "msvc", target_arch = "x86_64"))]
                 println!("cargo:rustc-link-search=native={}\\lib\\x64", str);
             }
             println!("cargo:rustc-link-lib=cudart");
