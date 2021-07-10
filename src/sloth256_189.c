@@ -661,6 +661,9 @@ static void square_mod_256_189(vec256 out, const vec256 inp)
 #endif
 
 #ifdef __x86_64__cpuidex
+# if defined(__clang__) /* apparently fails to recognize "rbx" as clobbered */
+__attribute__((optnone))
+# endif
 static int is_adx_avaiable()
 {
     static volatile unsigned int xfeat = 0;
