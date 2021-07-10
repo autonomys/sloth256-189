@@ -50,7 +50,6 @@ typedef const void *uptr_t;
 typedef unsigned long long limb_t;
 #else
 typedef unsigned int limb_t;
-# undef __ADX__ /* in -m32 case */
 #endif
 
 #define LIMB_T_BITS (8*sizeof(limb_t))
@@ -120,7 +119,9 @@ static inline bool_t vec_is_equal(const void *a, const void *b, size_t num)
     return is_zero(acc);
 }
 
-#if defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X84)
+#if !defined(__SLOTH_NO_ASM__) && \
+    (defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X84))
+
 void sqrx_n_mul_mod_256_189(vec256 out, const vec256 a, size_t count,
                                         const vec256 b);
 void mulx_mod_256_189(vec256 out, const vec256 a, const vec256 b);
@@ -128,7 +129,83 @@ void sqrx_mod_256_189(vec256 out, const vec256 a);
 void redc_mod_256_189(vec256 out, const vec256 a);
 void cneg_mod_256_189(vec256 out, const vec256 a, bool_t cbit);
 bool_t xor_n_check_mod_256_189(vec256 out, const vec256 a, const vec256 b);
-#else
+
+# if defined(__GNUC__)
+static inline void __cpuidex(int info[4], int eax, int ecx)
+{
+    int ebx, edx;
+
+    asm ("cpuid"
+         : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+         : "a"(eax), "c"(ecx) : "cc");
+    info[0] = eax;
+    info[1] = ebx;
+    info[2] = ecx;
+    info[3] = edx;
+}
+#  define __x86_64__cpuidex __cpuidex
+# elif defined(_MSC_VER)
+#  include <intrin.h>
+#  define __x86_64__cpuidex __cpuidex
+# endif
+
+#if 0
+static void sqr_n_mul(vec256 out, const vec256 a, size_t count,
+                                  const vec256 b)
+{
+    vec256 t;
+
+    while(count--) {
+        sqrx_mod_256_189(t, a);
+        a = t;
+    }
+    mulx_mod_256_189(out, t, b);
+}
+#endif
+
+/*
+ * |out| = |inp|**((|mod|+1)/4)%|mod|, where |mod| is 2**256-189.
+ * ~8.700 cycles on Coffee Lake, ~9.500 - on Rocket Lake:-(
+ */
+static bool_t sqrtx_mod_256_189(vec256 out, const vec256 inp)
+{
+    vec256 x, y;
+    bool_t neg;
+
+#define sqr_n_mul sqrx_n_mul_mod_256_189
+    sqr_n_mul(x, inp, 1, inp);  /* 0x3 */
+    sqr_n_mul(y, x, 1, inp);    /* 0x7 */
+    sqr_n_mul(x, y, 3, y);      /* 0x3f */
+    sqr_n_mul(x, x, 1, inp);    /* 0x7f */
+    sqr_n_mul(x, x, 7, x);      /* 0x3fff */
+    sqr_n_mul(x, x, 14, x);     /* 0xfffffff */
+    sqr_n_mul(x, x, 3, y);      /* 0x7fffffff */
+    sqr_n_mul(x, x, 31, x);     /* 0x3fffffffffffffff */
+    sqr_n_mul(x, x, 62, x);     /* 0xfffffffffffffffffffffffffffffff */
+    sqr_n_mul(x, x, 124, x);    /* 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff */
+    sqr_n_mul(x, x, 2, inp);    /* 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd */
+    sqr_n_mul(x, x, 4, inp);    /* 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd1 */
+#undef sqr_n_mul
+
+    redc_mod_256_189(x, x);
+    mulx_mod_256_189(y, x, x);  /* mulx is in cache, sqrx isn't */
+    neg = vec_is_equal(y, inp, sizeof(y)) ^ 1;
+    cneg_mod_256_189(out, x, neg ^ (bool_t)(x[0]&1));
+
+    return neg;
+}
+
+static void squarex_mod_256_189(vec256 out, const vec256 inp)
+{
+    bool_t neg = (bool_t)(inp[0]&1);
+
+    sqrx_mod_256_189(out, inp);
+    redc_mod_256_189(out, out);
+    cneg_mod_256_189(out, out, neg);
+}
+
+#else   /* no-asm */
+
 static void cneg_mod_256_189(vec256 out, const vec256 a, bool_t cbit)
 {
     limb_t mask, carry;
@@ -165,65 +242,10 @@ static bool_t xor_n_check_mod_256_189(vec256 out, const vec256 a,
 
     return (bool_t)carry;
 }
+
 #endif
 
-#if defined(__ADX__) && !defined(__SLOTH_PORTABLE__)
-#if 0
-static void sqr_n_mul(vec256 out, const vec256 a, size_t count,
-                                  const vec256 b)
-{
-    vec256 t;
-
-    while(count--) {
-        sqrx_mod_256_189(t, a);
-        a = t;
-    }
-    mulx_mod_256_189(out, t, b);
-}
-#endif
-
-/*
- * |out| = |inp|**((|mod|+1)/4)%|mod|, where |mod| is 2**256-189.
- * ~8.700 cycles on Coffee Lake, ~9.500 - on Rocket Lake:-(
- */
-static bool_t sqrt_mod_256_189(vec256 out, const vec256 inp)
-{
-    vec256 x, y;
-    bool_t neg;
-
-#define sqr_n_mul sqrx_n_mul_mod_256_189
-    sqr_n_mul(x, inp, 1, inp);  /* 0x3 */
-    sqr_n_mul(y, x, 1, inp);    /* 0x7 */
-    sqr_n_mul(x, y, 3, y);      /* 0x3f */
-    sqr_n_mul(x, x, 1, inp);    /* 0x7f */
-    sqr_n_mul(x, x, 7, x);      /* 0x3fff */
-    sqr_n_mul(x, x, 14, x);     /* 0xfffffff */
-    sqr_n_mul(x, x, 3, y);      /* 0x7fffffff */
-    sqr_n_mul(x, x, 31, x);     /* 0x3fffffffffffffff */
-    sqr_n_mul(x, x, 62, x);     /* 0xfffffffffffffffffffffffffffffff */
-    sqr_n_mul(x, x, 124, x);    /* 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff */
-    sqr_n_mul(x, x, 2, inp);    /* 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd */
-    sqr_n_mul(x, x, 4, inp);    /* 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd1 */
-#undef sqr_n_mul
-
-    redc_mod_256_189(x, x);
-    mulx_mod_256_189(y, x, x);  /* mulx is in cache, sqrx isn't */
-    neg = vec_is_equal(y, inp, sizeof(y)) ^ 1;
-    cneg_mod_256_189(out, x, neg ^ (bool_t)(x[0]&1));
-
-    return neg;
-}
-
-static void square_mod_256_189(vec256 out, const vec256 inp)
-{
-    bool_t neg = (bool_t)(inp[0]&1);
-
-    sqrx_mod_256_189(out, inp);
-    redc_mod_256_189(out, out);
-    cneg_mod_256_189(out, out, neg);
-}
-
-#elif __SIZEOF_INT128__-0==16
+#if __SIZEOF_INT128__-0==16
 
 typedef __uint128_t u128;
 typedef unsigned long long u64;
@@ -638,6 +660,25 @@ static void square_mod_256_189(vec256 out, const vec256 inp)
 
 #endif
 
+#ifdef __x86_64__cpuidex
+static int is_adx_avaiable()
+{
+    static volatile unsigned int xfeat = 0;
+    int info[4], ebx;
+
+    if ((ebx = xfeat) == 0) {
+        ebx = 1;
+        __cpuidex(info, 0, 0);
+        if (info[0] >= 7) {
+            __cpuidex(info, 7, 0);
+            ebx |= info[1];
+        }
+        xfeat = ebx;
+    }
+    return (ebx >> 19) & 1;
+}
+#endif
+
 int sloth256_189_encode(unsigned char *inout, size_t len,
                         const unsigned char iv_[32], size_t layers)
 {
@@ -660,6 +701,17 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
 
     len /= sizeof(limb_t);
 
+#ifdef __x86_64__cpuidex
+    if (is_adx_avaiable())
+        while (layers--) {
+            for (i = 0; i < len; i += 32/sizeof(limb_t)) {
+                ret |= xor_n_check_mod_256_189(block+i, block+i, feedback);
+                sqrtx_mod_256_189(block+i, block+i);
+                feedback = block+i;
+            }
+        }
+    else
+#endif
     while (layers--) {
         for (i = 0; i < len; i += 32/sizeof(limb_t)) {
             ret |= xor_n_check_mod_256_189(block+i, block+i, feedback);
@@ -695,6 +747,22 @@ void sloth256_189_decode(unsigned char *inout, size_t len,
 
     len /= sizeof(limb_t);
 
+#ifdef __x86_64__cpuidex
+    if (is_adx_avaiable())
+        while (1) {
+            for (i = len; i -= 32/sizeof(limb_t);) {
+                squarex_mod_256_189(block+i, block+i);
+                (void)xor_n_check_mod_256_189(block+i, block+i,
+                                          block+i-32/sizeof(limb_t));
+            }
+            squarex_mod_256_189(block, block);
+            if (--layers == 0)
+                break;
+            (void)xor_n_check_mod_256_189(block, block,
+                                          block+len-32/sizeof(limb_t));
+        }
+    else
+#endif
     while (1) {
         for (i = len; i -= 32/sizeof(limb_t);) {
             square_mod_256_189(block+i, block+i);
