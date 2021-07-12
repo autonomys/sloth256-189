@@ -34,7 +34,7 @@ fn main() {
         }
         true => {
             println!("Compiling without assembly module");
-            cc.define("__SLOTH_NO_ASM__", None);
+            cc.define("__SLOTH256_189_NO_ASM__", None);
         }
     }
     cc.flag_if_supported("-mno-avx") // avoid costly transitions
