@@ -20,6 +20,10 @@ fn main() {
     // Set CC environment variable to choose alternative C compiler.
     // Optimization level depends on whether or not --release is passed
     // or implied.
+    #[cfg(target_env = "msvc")]
+    if !env::var("CC").is_ok() && which::which("clang-cl").is_ok() {
+        env::set_var("CC", "clang-cl");
+    }
     let mut cc = cc::Build::new();
     let mut files = vec![PathBuf::from("src/sloth256_189.c")];
 
