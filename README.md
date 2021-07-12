@@ -17,19 +17,24 @@ Software/Decode          time:   [1.5111 us 1.5115 us 1.5120 us]  30x
 #if detected(__ADX__)
  x86_64 assembly-assisted code path, executed on processors with ADX
  ISA extension.
- Field element is represented as 4 64-bit limbs.
+ Field element is represented as 4 64-bit limbs. Amount of limb
+ multiplication operations is 4*4+5.
 #elif __SIZEOF_INT128__-0==16
  Any 64-bit platform with compiler that supports __int128 type, such
  as contemporary gcc or clang, but not Microsoft C.
  Field element is represented as 5 limbs, 1st is 52- and the rest are
- 51-bit values.
+ 51-bit values. Amount of limb multiplication operations is 5*5+5.
 #else
- Fallback for everything else.
+ Fallback for everything else. Presumably even suitable for OpenCL.
  Field element is represented as 12 limbs, a mixture of 22- and 21-bit
- values [with the last one being 19 bits].
+ values [with the last one being 19 bits]. Amount of limb multiplication
+ operations is 12*12+14. Sensible to vectorize on 32-bit platforms.
 #endif
 ```
-All three code paths follow the same pattern for the sqrt operation:
+Abovementioned amounts of limb multiplication operations don't directly
+translate to performance, but can be used as crude first-order
+approximations. As far as sqrt operation goes, all thee code paths follow
+the same pattern:
 ```
 raise input to ((2**256-189)+1)/4'th power [with dedicated addition chain]
 square the result and compare to the input
@@ -44,11 +49,12 @@ not one uses a non-Microsoft or Microsoft compiler. In former case the
 by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
 
 The assembly modules are generated from single Perl script,
-`src/mod256-189-x86_64.pl`, by executing `src/refresh.sh`. It's assumed
-that dependency on Perl is undesired. Most notably Perl is not
-customarily installed on Windows. Otherwise this step could be moved to
-`build.rs`, in which case one would remove all subdirectories in `src`
-and have cargo recreate the assembly modules during the build phase.
+`src/mod256-189-x86_64.pl`, by executing `src/refresh.sh` on a system
+with Perl. It's assumed that universal build-time dependency on Perl is
+undesired. Most notably Perl is not customarily installed on Windows.
+Otherwise this step could be moved to `build.rs`, in which case one
+would remove all subdirectories in `src` and have `build.rs` recreate
+the assembly modules during the build phase.
 
 Field multiplication is performed approximately as following:
 ```
