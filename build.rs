@@ -99,7 +99,7 @@ fn main() {
                     libdir.to_str().unwrap()
                 );
             }
-            println!("cargo:rustc-link-lib=cudart");
+            println!("cargo:rustc-link-lib=cudart_static");
         }
     }
 }
