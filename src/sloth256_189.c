@@ -43,10 +43,12 @@ typedef const void *uptr_t;
 # endif
 #endif
 
-#if defined(_LP64) || defined(_WIN64) || \
-    defined(__x86_64__) || defined(__aarch64__) || \
-    defined(__mips64) || defined(__ia64) || \
-    (defined(__VMS) && !defined(__vax)) /* these named 64-bits can be ILP32 */
+#if defined(_LP64) || __SIZEOF_LONG__-0==8
+typedef unsigned long limb_t;
+#elif defined(_WIN64) || \
+      defined(__x86_64__) || defined(__aarch64__) || \
+      defined(__mips64) || defined(__ia64) || \
+      (defined(__VMS) && !defined(__vax)) /* these named 64-bits can be ILP32 */
 typedef unsigned long long limb_t;
 #else
 typedef unsigned int limb_t;
@@ -245,10 +247,15 @@ static bool_t xor_n_check_mod_256_189(vec256 out, const vec256 a,
 
 #endif
 
-#if __SIZEOF_INT128__-0==16
+#if __SIZEOF_INT128__-0==16 || __SIZEOF_LONG_LONG__-0==16
 
+#if __SIZEOF_LONG_LONG__-0==16
+typedef unsigned long long u128;
+typedef unsigned long u64;
+#else
 typedef __uint128_t u128;
 typedef unsigned long long u64;
+#endif
 
 typedef u64 fe51[5];    /* NB! First limb is 52 bits */
 
@@ -450,7 +457,11 @@ static void square_mod_256_189(vec256 out, const vec256 inp)
 # pragma message(__FILE__": consider building with %CC% set to 'clang-cl'")
 #endif
 
+#if defined(_LP64) || __SIZEOF_LONG__-0==8
+typedef unsigned long u64;
+#else
 typedef unsigned long long u64;
+#endif
 typedef unsigned int u32;
 
 typedef u32 fe21_5[12];         /* 5x(22+21)+22+19=256 */
