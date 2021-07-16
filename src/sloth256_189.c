@@ -1,3 +1,4 @@
+#ifndef __OPENCL_C_VERSION__
 #include <stdlib.h>
 
 #if defined(__GNUC__)
@@ -11,6 +12,9 @@
 # ifndef alloca
 #  define alloca(s) _alloca(s)
 # endif
+#endif
+#elif defined(__SIZE_TYPE__)
+typedef __SIZE_TYPE__ size_t;
 #endif
 
 #ifdef __UINTPTR_TYPE__
@@ -259,8 +263,13 @@ typedef unsigned long long u64;
 
 typedef u64 fe51[5];    /* NB! First limb is 52 bits */
 
+#ifdef __OPENCL_C_VERSION__
+# define MASK51 0x7ffffffffffff
+# define MASK52 0xfffffffffffff
+#else
 static const u64 MASK51 = 0x7ffffffffffff,
                  MASK52 = 0xfffffffffffff;
+#endif
 
 static void to_fe51(fe51 out, const vec256 in)
 {
@@ -466,9 +475,15 @@ typedef unsigned int u32;
 
 typedef u32 fe21_5[12];         /* 5x(22+21)+22+19=256 */
 
+#ifdef __OPENCL_C_VERSION__
+# define MASK22 0x3fffff
+# define MASK21 0x1fffff
+# define MASK19 0x7ffff
+#else
 static const u32 MASK22 = 0x3fffff,
                  MASK21 = 0x1fffff,
                  MASK19 = 0x7ffff;
+#endif
 
 static void to_fe21_5(fe21_5 out, const void *in_)
 {
@@ -700,18 +715,22 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
     size_t i;
     limb_t iv[32/sizeof(limb_t)], *feedback = iv;
     limb_t *block = (limb_t *)inout;
+#ifndef __OPENCL_C_VERSION__
     const union {
         long one;
         char little;
     } is_endian = { 1 };
-
-    limbs_from_le_bytes(iv, iv_, 32);
 
     if (!is_endian.little || (size_t)inout%sizeof(limb_t) != 0) {
         len &= ((size_t)0-32);
         block = alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
+#elif !defined(__LITTLE_ENDIAN__)
+# error "unsupported platform"
+#endif
+
+    limbs_from_le_bytes(iv, iv_, 32);
 
     len /= sizeof(limb_t);
 
@@ -746,18 +765,22 @@ void sloth256_189_decode(unsigned char *inout, size_t len,
     size_t i;
     limb_t iv[32/sizeof(limb_t)];
     limb_t *block = (limb_t *)inout;
+#ifndef __OPENCL_C_VERSION__
     const union {
         long one;
         char little;
     } is_endian = { 1 };
-
-    limbs_from_le_bytes(iv, iv_, 32);
 
     if (!is_endian.little || (size_t)inout%sizeof(limb_t) != 0) {
         len &= ((size_t)0-32);
         block = alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
+#elif !defined(__LITTLE_ENDIAN__)
+# error "unsupported platform"
+#endif
+
+    limbs_from_le_bytes(iv, iv_, 32);
 
     len /= sizeof(limb_t);
 
