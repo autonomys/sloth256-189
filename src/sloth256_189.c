@@ -460,7 +460,7 @@ static void square_mod_256_189(vec256 out, const vec256 inp)
     cneg_mod_256_189(out, out, neg);
 }
 
-#else
+#elif 0
 
 #if defined(_WIN64) && defined(_MSC_VER)
 # pragma message(__FILE__": consider building with %CC% set to 'clang-cl'")
@@ -681,6 +681,445 @@ static void square_mod_256_189(vec256 out, const vec256 inp)
     to_fe21_5(x, inp);
     sqr_mod_256_189(x, x);
     from_fe21_5(out, x);
+    cneg_mod_256_189(out, out, neg);
+}
+
+#else
+
+#if defined(_WIN64) && defined(_MSC_VER)
+# pragma message(__FILE__": consider building with %CC% set to 'clang-cl'")
+#endif
+
+#if defined(_LP64) || __SIZEOF_LONG__-0==8
+typedef unsigned long u64;
+#else
+typedef unsigned long long u64;
+#endif
+typedef unsigned int u32;
+
+typedef u32 fe26[10];           /* 9x26+22=256 */
+
+#ifdef __OPENCL_C_VERSION__
+# define MASK26 0x3ffffff
+# define MASK22 0x3fffff
+#else
+static const u32 MASK26 = 0x3ffffff,
+                 MASK22 = 0x3fffff;
+#endif
+
+static void to_fe26(fe26 out, const void *in_)
+{
+    const u32 *in = in_;
+    const union {
+        long one;
+        char little;
+    } is_endian = { 1 };
+    const size_t adj = (is_endian.little^1) & (sizeof(limb_t)==8);
+
+    out[0] = (in[0^adj])                     & MASK26;
+    out[1] = (in[0^adj]>>26 | in[1^adj]<<6)  & MASK26;
+    out[2] = (in[1^adj]>>20 | in[2^adj]<<12) & MASK26;
+    out[3] = (in[2^adj]>>14 | in[3^adj]<<18) & MASK26;
+    out[4] = (in[3^adj]>>8  | in[4^adj]<<24) & MASK26;
+    out[5] = (in[4^adj]>>2)                  & MASK26;
+    out[6] = (in[4^adj]>>28 | in[5^adj]<<4)  & MASK26;
+    out[7] = (in[5^adj]>>22 | in[6^adj]<<10) & MASK26;
+    out[8] = (in[6^adj]>>16 | in[7^adj]<<16) & MASK26;
+    out[9] = (in[7^adj]>>10);
+}
+
+static void from_fe26(void *out_, const fe26 in)
+{
+    u32 h0, q, *out = out_;
+    u64 t;
+    const union {
+        long one;
+        char little;
+    } is_endian = { 1 };
+    const size_t adj = (is_endian.little^1) & (sizeof(limb_t)==8);
+
+    /* compare to the modulus */
+    q = ((h0 = in[0]) + 189) >> 26;
+    q = (in[1] + q) >> 26;
+    q = (in[2] + q) >> 26;
+    q = (in[3] + q) >> 26;
+    q = (in[4] + q) >> 26;
+    q = (in[5] + q) >> 26;
+    q = (in[6] + q) >> 26;
+    q = (in[7] + q) >> 26;
+    q = (in[8] + q) >> 26;
+    q = (in[9] + q) >> 22;
+
+    /* full reduction */
+    h0 += 189 * q;
+
+    t  = (u64)h0;
+    t += (u64)in[1]<<26;    out[0^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[2]<<20;    out[1^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[3]<<14;    out[2^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[4]<<8;     out[3^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[5]<<2;
+    t += (u64)in[6]<<28;    out[4^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[7]<<22;    out[5^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[8]<<16;    out[6^adj] = (u32)t;    t >>= 32;
+    t += (u64)in[9]<<10;    out[7^adj] = (u32)t;
+}
+
+static void mul_mod_256_189(fe26 h, const fe26 f, const fe26 g_)
+{
+#ifdef __OPTIMIZE_SIZE__
+    u64 H[10], temp;
+    u32 g[16], f_i;
+    size_t i;
+
+    f_i  = f[0];
+    H[0] = (u64)f_i * (g[0] = g_[0]);
+    H[1] = (u64)f_i * (g[1] = g_[1]);
+    H[2] = (u64)f_i * (g[2] = g_[2]);
+    H[3] = (u64)f_i * (g[3] = g_[3]);
+    H[4] = (u64)f_i * (g[4] = g_[4]);
+    H[5] = (u64)f_i * (g[5] = g_[5]);
+    H[6] = (u64)f_i * (g[6] = g_[6]);
+    H[7] = (u64)f_i * (g[7] = g_[7]);
+    H[8] = (u64)f_i * (g[8] = g_[8]);
+    H[9] = (u64)f_i * (g[9] = g_[9]);
+
+    for (i=1; i<10; i++) {
+        f_i   = f[i];               temp  = (u64)g[10-i] * (189<<4);
+        H[0] += (u64)f_i * (g[(0-i)&0xf]  = (u32)temp & MASK26);
+        H[1] += (u64)f_i * (g[(1-i)&0xf] += (u32)(temp >> 26));
+        H[2] += (u64)f_i * g[(2-i)&0xf];
+        H[3] += (u64)f_i * g[(3-i)&0xf];
+        H[4] += (u64)f_i * g[(4-i)&0xf];
+        H[5] += (u64)f_i * g[(5-i)&0xf];
+        H[6] += (u64)f_i * g[(6-i)&0xf];
+        H[7] += (u64)f_i * g[(7-i)&0xf];
+        H[8] += (u64)f_i * g[(8-i)&0xf];
+        H[9] += (u64)f_i * g[9-i];
+    }
+#else
+    u64 H[10], temp;
+    u32 g[10], f_i;
+
+    f_i   = f[0];
+    H[0]  = (u64)f_i * (g[0] = g_[0]);
+    H[1]  = (u64)f_i * (g[1] = g_[1]);
+    H[2]  = (u64)f_i * (g[2] = g_[2]);
+    H[3]  = (u64)f_i * (g[3] = g_[3]);
+    H[4]  = (u64)f_i * (g[4] = g_[4]);
+    H[5]  = (u64)f_i * (g[5] = g_[5]);
+    H[6]  = (u64)f_i * (g[6] = g_[6]);
+    H[7]  = (u64)f_i * (g[7] = g_[7]);
+    H[8]  = (u64)f_i * (g[8] = g_[8]);
+    H[9]  = (u64)f_i * (g[9] = g_[9]);
+
+    f_i   = f[1];       temp  = (u64)g[9] * (189<<4);
+    H[0] += (u64)f_i * (g[9]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[0] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[1];
+    H[3] += (u64)f_i * g[2];
+    H[4] += (u64)f_i * g[3];
+    H[5] += (u64)f_i * g[4];
+    H[6] += (u64)f_i * g[5];
+    H[7] += (u64)f_i * g[6];
+    H[8] += (u64)f_i * g[7];
+    H[9] += (u64)f_i * g[8];
+
+    f_i   = f[2];       temp  = (u64)g[8] * (189<<4);
+    H[0] += (u64)f_i * (g[8]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[9] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[0];
+    H[3] += (u64)f_i * g[1];
+    H[4] += (u64)f_i * g[2];
+    H[5] += (u64)f_i * g[3];
+    H[6] += (u64)f_i * g[4];
+    H[7] += (u64)f_i * g[5];
+    H[8] += (u64)f_i * g[6];
+    H[9] += (u64)f_i * g[7];
+
+    f_i   = f[3];       temp  = (u64)g[7] * (189<<4);
+    H[0] += (u64)f_i * (g[7]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[8] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[9];
+    H[3] += (u64)f_i * g[0];
+    H[4] += (u64)f_i * g[1];
+    H[5] += (u64)f_i * g[2];
+    H[6] += (u64)f_i * g[3];
+    H[7] += (u64)f_i * g[4];
+    H[8] += (u64)f_i * g[5];
+    H[9] += (u64)f_i * g[6];
+
+    f_i   = f[4];       temp  = (u64)g[6] * (189<<4);
+    H[0] += (u64)f_i * (g[6]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[7] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[8];
+    H[3] += (u64)f_i * g[9];
+    H[4] += (u64)f_i * g[0];
+    H[5] += (u64)f_i * g[1];
+    H[6] += (u64)f_i * g[2];
+    H[7] += (u64)f_i * g[3];
+    H[8] += (u64)f_i * g[4];
+    H[9] += (u64)f_i * g[5];
+
+    f_i   = f[5];       temp  = (u64)g[5] * (189<<4);
+    H[0] += (u64)f_i * (g[5]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[6] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[7];
+    H[3] += (u64)f_i * g[8];
+    H[4] += (u64)f_i * g[9];
+    H[5] += (u64)f_i * g[0];
+    H[6] += (u64)f_i * g[1];
+    H[7] += (u64)f_i * g[2];
+    H[8] += (u64)f_i * g[3];
+    H[9] += (u64)f_i * g[4];
+
+    f_i   = f[6];       temp  = (u64)g[4] * (189<<4);
+    H[0] += (u64)f_i * (g[4]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[5] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[6];
+    H[3] += (u64)f_i * g[7];
+    H[4] += (u64)f_i * g[8];
+    H[5] += (u64)f_i * g[9];
+    H[6] += (u64)f_i * g[0];
+    H[7] += (u64)f_i * g[1];
+    H[8] += (u64)f_i * g[2];
+    H[9] += (u64)f_i * g[3];
+
+    f_i   = f[7];       temp  = (u64)g[3] * (189<<4);
+    H[0] += (u64)f_i * (g[3]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[4] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[5];
+    H[3] += (u64)f_i * g[6];
+    H[4] += (u64)f_i * g[7];
+    H[5] += (u64)f_i * g[8];
+    H[6] += (u64)f_i * g[9];
+    H[7] += (u64)f_i * g[0];
+    H[8] += (u64)f_i * g[1];
+    H[9] += (u64)f_i * g[2];
+
+    f_i   = f[8];       temp  = (u64)g[2] * (189<<4);
+    H[0] += (u64)f_i * (g[2]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[3] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[4];
+    H[3] += (u64)f_i * g[5];
+    H[4] += (u64)f_i * g[6];
+    H[5] += (u64)f_i * g[7];
+    H[6] += (u64)f_i * g[8];
+    H[7] += (u64)f_i * g[9];
+    H[8] += (u64)f_i * g[0];
+    H[9] += (u64)f_i * g[1];
+
+    f_i   = f[9];       temp  = (u64)g[1] * (189<<4);
+    H[0] += (u64)f_i * (g[1]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[2] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[3];
+    H[3] += (u64)f_i * g[4];
+    H[4] += (u64)f_i * g[5];
+    H[5] += (u64)f_i * g[6];
+    H[6] += (u64)f_i * g[7];
+    H[7] += (u64)f_i * g[8];
+    H[8] += (u64)f_i * g[9];
+    H[9] += (u64)f_i * g[0];
+#endif
+
+    /* partial [lazy] reduction */
+    H[1] += H[0] >> 26;         g[0] = (u32)H[0] & MASK26;
+    H[3] += H[2] >> 26;         g[2] = (u32)H[2] & MASK26;
+    H[5] += H[4] >> 26;         g[4] = (u32)H[4] & MASK26;
+    H[7] += H[6] >> 26;         g[6] = (u32)H[6] & MASK26;
+    H[9] += H[8] >> 26;         g[8] = (u32)H[8] & MASK26;
+
+    H[0] = g[0] + (H[9] >> 22)*189; h[9] = (u32)H[9] & MASK22;
+
+    g[2] += (u32)(H[1] >> 26);  h[1] = (u32)H[1] & MASK26;
+    g[4] += (u32)(H[3] >> 26);  h[3] = (u32)H[3] & MASK26;
+    g[6] += (u32)(H[5] >> 26);  h[5] = (u32)H[5] & MASK26;
+    g[8] += (u32)(H[7] >> 26);  h[7] = (u32)H[7] & MASK26;
+
+    h[1] += (u32)(H[0] >> 26);  h[0] = (u32)H[0] & MASK26;
+    h[3] += g[2] >> 26;         h[2] = g[2]      & MASK26;
+    h[5] += g[4] >> 26;         h[4] = g[4]      & MASK26;
+    h[7] += g[6] >> 26;         h[6] = g[6]      & MASK26;
+    h[9] += g[8] >> 26;         h[8] = g[8]      & MASK26;
+}
+
+static void sqr_mod_256_189(fe26 h, const fe26 f)
+{
+#ifdef __OPTIMIZE_SIZE__
+    mul_mod_256_189(h, f, f);
+#else   /* ~20% faster sqrt */
+    u64 H[10], temp;
+    u32 g[10], f_i;
+
+    g[0]  = f[0];
+    H[0]  = (u64)g[0] * (g[0]);
+
+    g[1]  = f[1];        temp  = (u64)f[9] * (189<<4);
+    H[0] += (u64)g[1] * (g[9]  = (u32)temp & MASK26);
+    H[1]  = (u64)g[1] * (g[0] += g[0] + (u32)(temp >> 26));
+    H[2]  = (u64)g[1] * g[1];   g[1] <<= 1;
+    H[3]  = (u64)g[1] * (g[2] = f[2]);
+    H[4]  = (u64)g[1] * (g[3] = f[3]);
+    H[5]  = (u64)g[1] * (g[4] = f[4]);
+    H[6]  = (u64)g[1] * (g[5] = f[5]);
+    H[7]  = (u64)g[1] * (g[6] = f[6]);
+    H[8]  = (u64)g[1] * (g[7] = f[7]);
+    H[9]  = (u64)g[1] * (g[8] = f[8]);
+
+                         temp  = (u64)g[8] * (189<<4);
+    H[0] += (u64)g[2] * (g[8]  = (u32)temp & MASK26);
+    H[1] += (u64)g[2] * (g[9] += (u32)(temp >> 26));
+    H[2] += (u64)g[2] * g[0];
+    H[4] += (u64)g[2] * g[2];   g[2] <<= 1;
+    H[5] += (u64)g[2] * g[3];
+    H[6] += (u64)g[2] * g[4];
+    H[7] += (u64)g[2] * g[5];
+    H[8] += (u64)g[2] * g[6];
+    H[9] += (u64)g[2] * g[7];
+
+                         temp  = (u64)g[7] * (189<<4);
+    H[0] += (u64)g[3] * (g[7]  = (u32)temp & MASK26);
+    H[1] += (u64)g[3] * (g[8] += (u32)(temp >> 26));
+    H[2] += (u64)g[3] * g[9];
+    H[3] += (u64)g[3] * g[0];
+    H[6] += (u64)g[3] * g[3];   g[3] <<= 1;
+    H[7] += (u64)g[3] * g[4];
+    H[8] += (u64)g[3] * g[5];
+    H[9] += (u64)g[3] * g[6];
+
+                         temp  = (u64)g[6] * (189<<4);
+    H[0] += (u64)g[4] * (g[6]  = (u32)temp & MASK26);
+    H[1] += (u64)g[4] * (g[7] += (u32)(temp >> 26));
+    H[2] += (u64)g[4] * g[8];
+    H[3] += (u64)g[4] * g[9];
+    H[4] += (u64)g[4] * g[0];
+    H[8] += (u64)g[4] * g[4];   g[4] <<= 1;
+    H[9] += (u64)g[4] * g[5];
+
+    f_i   = g[5];       temp  = (u64)g[5] * (189<<4);
+    H[0] += (u64)f_i * (g[5]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[6] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[7];
+    H[3] += (u64)f_i * g[8];
+    H[4] += (u64)f_i * g[9];
+    H[5] += (u64)f_i * g[0];
+
+    f_i   = f[6];       temp  = (u64)g[4] * (189<<3);
+    H[0] += (u64)f_i * (g[4]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[5] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[6];
+    H[3] += (u64)f_i * g[7];
+    H[4] += (u64)f_i * g[8];
+    H[5] += (u64)f_i * g[9];
+    H[6] += (u64)f_i * g[0];
+
+    f_i   = f[7];       temp  = (u64)g[3] * (189<<3);
+    H[0] += (u64)f_i * (g[3]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[4] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[5];
+    H[3] += (u64)f_i * g[6];
+    H[4] += (u64)f_i * g[7];
+    H[5] += (u64)f_i * g[8];
+    H[6] += (u64)f_i * g[9];
+    H[7] += (u64)f_i * g[0];
+
+    f_i   = f[8];       temp  = (u64)g[2] * (189<<3);
+    H[0] += (u64)f_i * (g[2]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[3] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[4];
+    H[3] += (u64)f_i * g[5];
+    H[4] += (u64)f_i * g[6];
+    H[5] += (u64)f_i * g[7];
+    H[6] += (u64)f_i * g[8];
+    H[7] += (u64)f_i * g[9];
+    H[8] += (u64)f_i * g[0];
+
+    f_i   = f[9];       temp  = (u64)g[1] * (189<<3);
+    H[0] += (u64)f_i * (g[1]  = (u32)temp & MASK26);
+    H[1] += (u64)f_i * (g[2] += (u32)(temp >> 26));
+    H[2] += (u64)f_i * g[3];
+    H[3] += (u64)f_i * g[4];
+    H[4] += (u64)f_i * g[5];
+    H[5] += (u64)f_i * g[6];
+    H[6] += (u64)f_i * g[7];
+    H[7] += (u64)f_i * g[8];
+    H[8] += (u64)f_i * g[9];
+    H[9] += (u64)f_i * g[0];
+
+    /* partial [lazy] reduction */
+    H[1] += H[0] >> 26;         g[0] = (u32)H[0] & MASK26;
+    H[3] += H[2] >> 26;         g[2] = (u32)H[2] & MASK26;
+    H[5] += H[4] >> 26;         g[4] = (u32)H[4] & MASK26;
+    H[7] += H[6] >> 26;         g[6] = (u32)H[6] & MASK26;
+    H[9] += H[8] >> 26;         g[8] = (u32)H[8] & MASK26;
+
+    H[0] = g[0] + (H[9] >> 22)*189; h[9] = (u32)H[9] & MASK22;
+
+    g[2] += (u32)(H[1] >> 26);  h[1] = (u32)H[1] & MASK26;
+    g[4] += (u32)(H[3] >> 26);  h[3] = (u32)H[3] & MASK26;
+    g[6] += (u32)(H[5] >> 26);  h[5] = (u32)H[5] & MASK26;
+    g[8] += (u32)(H[7] >> 26);  h[7] = (u32)H[7] & MASK26;
+
+    h[1] += (u32)(H[0] >> 26);  h[0] = (u32)H[0] & MASK26;
+    h[3] += g[2] >> 26;         h[2] = g[2]      & MASK26;
+    h[5] += g[4] >> 26;         h[4] = g[4]      & MASK26;
+    h[7] += g[6] >> 26;         h[6] = g[6]      & MASK26;
+    h[9] += g[8] >> 26;         h[8] = g[8]      & MASK26;
+#endif
+}
+
+static void sqr_n_mul_fe26(fe26 out, const fe26 a, size_t count,
+                                       const fe26 b)
+{
+    fe26 t;
+
+    while(count--) {
+        sqr_mod_256_189(t, a);
+        a = t;
+    }
+    mul_mod_256_189(out, t, b);
+}
+
+static bool_t sqrt_mod_256_189(vec256 out, const vec256 inp)
+{
+    fe26 x, y, z;
+    vec256 sqr, ret;
+    bool_t neg;
+
+    to_fe26(z, inp);
+
+#define sqr_n_mul sqr_n_mul_fe26
+    sqr_n_mul(x, z, 1, z);      /* 0x3 */
+    sqr_n_mul(y, x, 1, z);      /* 0x7 */
+    sqr_n_mul(x, y, 3, y);      /* 0x3f */
+    sqr_n_mul(x, x, 1, z);      /* 0x7f */
+    sqr_n_mul(x, x, 7, x);      /* 0x3fff */
+    sqr_n_mul(x, x, 14, x);     /* 0xfffffff */
+    sqr_n_mul(x, x, 3, y);      /* 0x7fffffff */
+    sqr_n_mul(x, x, 31, x);     /* 0x3fffffffffffffff */
+    sqr_n_mul(x, x, 62, x);     /* 0xfffffffffffffffffffffffffffffff */
+    sqr_n_mul(x, x, 124, x);    /* 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff */
+    sqr_n_mul(x, x, 2, z);      /* 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd */
+    sqr_n_mul(x, x, 4, z);      /* 0x3fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd1 */
+#undef sqr_n_mul
+
+    mul_mod_256_189(y, x, x);
+    from_fe26(ret, x);
+    from_fe26(sqr, y);
+    neg = vec_is_equal(sqr, inp, sizeof(sqr)) ^ 1;
+    cneg_mod_256_189(out, ret, neg ^ (bool_t)(ret[0]&1));
+
+    return neg;
+}
+
+static void square_mod_256_189(vec256 out, const vec256 inp)
+{
+    bool_t neg = (bool_t)(inp[0]&1);
+    fe26 x;
+
+    to_fe26(x, inp);
+    sqr_mod_256_189(x, x);
+    from_fe26(out, x);
     cneg_mod_256_189(out, out, neg);
 }
 
