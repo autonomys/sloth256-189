@@ -692,7 +692,7 @@ __attribute__((optnone))
 # endif
 static int is_adx_avaiable()
 {
-    static volatile unsigned int xfeat = 0;
+    static volatile int xfeat = 0;
     int info[4], ebx;
 
     if ((ebx = xfeat) == 0) {
@@ -726,7 +726,9 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
         block = alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
-#elif !defined(__LITTLE_ENDIAN__)
+#elif defined(__LITTLE_ENDIAN__)
+    /* assert((size_t)inout%sizeof(limb_t) == 0); */
+#else
 # error "unsupported platform"
 #endif
 
@@ -776,7 +778,9 @@ void sloth256_189_decode(unsigned char *inout, size_t len,
         block = alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
-#elif !defined(__LITTLE_ENDIAN__)
+#elif defined(__LITTLE_ENDIAN__)
+    /* assert((size_t)inout%sizeof(limb_t) == 0); */
+#else
 # error "unsupported platform"
 #endif
 
