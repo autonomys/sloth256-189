@@ -25,10 +25,10 @@ Software/Decode          time:   [1.5111 us 1.5115 us 1.5120 us]  30x
  Field element is represented as 5 limbs, 1st is 52- and the rest are
  51-bit values. Amount of limb multiplication operations is 5*5+5.
 #else
- Fallback for everything else. Presumably even suitable for OpenCL.
- Field element is represented as 12 limbs, a mixture of 22- and 21-bit
- values [with the last one being 19 bits]. Amount of limb multiplication
- operations is 12*12+14. Sensible to vectorize on 32-bit platforms.
+ Fallback for everything else. Presumably most suitable for OpenCL.
+ Field element is represented as 10 limbs holding 26-bit values
+ [with the last one being 22 bits]. Amount of limb multiplication
+ operations is 10*10+10. Sensible to vectorize on 32-bit platforms.
 #endif
 ```
 Abovementioned amounts of limb multiplication operations don't directly
