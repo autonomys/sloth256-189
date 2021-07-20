@@ -33,13 +33,36 @@ Software/Decode          time:   [1.5111 us 1.5115 us 1.5120 us]  30x
 ```
 Abovementioned amounts of limb multiplication operations don't directly
 translate to performance, but can be used as crude first-order
-approximations. As far as sqrt operation goes, all thee code paths follow
-the same pattern:
+approximations. The actual choice is governed rather by underlying
+hardware capabilities. On related note in GPU context. For example, even
+if clang allows you to generate LLVM assembly for 5-limb code with
+`--target=spir`, it doesn't mean that it's optimal choice for specific
+GPU [if any]. As additional unlisted data point, on CUDA we'll be
+looking at 8*8+10.
+
+As far as sqrt operation goes, all three code paths follow the same
+pattern:
 ```
 raise input to ((2**256-189)+1)/4'th power [with dedicated addition chain]
 square the result and compare to the input
 conditionally negate the result accordingly
 ```
+Inverse operation, squaring, is:
+```
+square the input
+conditionally negate the result if input was odd
+```
+Individual field multiplication is performed approximately as following:
+```
+uint512 temp = a * b
+temp = lo256(temp) + hi256(temp)*189
+temp = lo256(temp) + hi8(temp)*189
+return lo256(temp) + hi1(temp)*189
+```
+"Approximately" refers to the fact that in sparse representations
+`lo256()` and `hi256()` are not exact, nor explicit in the
+implementation.
+
 ADX code path is selected at run time. For testing purposes assembly
 support can be suppressed with `--features no-asm` at cargo command
 line. Otherwise `build.rs` adds `assembly.S` or
@@ -55,14 +78,3 @@ undesired. Most notably Perl is not customarily installed on Windows.
 Otherwise this step could be moved to `build.rs`, in which case one
 would remove all subdirectories in `src` and have `build.rs` recreate
 the assembly modules during the build phase.
-
-Field multiplication is performed approximately as following:
-```
-uint512 temp = a * b
-temp = lo256(temp) + hi256(temp)*189
-temp = lo256(temp) + hi8(temp)*189
-return lo256(temp) + hi1(temp)*189
-```
-"Approximately" refers to the fact that in sparse representations
-`lo256()` and `hi256()` are not exact, nor explicit in the
-implementation.
