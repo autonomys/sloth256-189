@@ -54,52 +54,13 @@ fn main() {
         Ok(var) => which::which(var),
         Err(_) => which::which("nvcc"),
     };
-    match nvcc {
-        Err(_) => (),
-        Ok(nvcc) => {
-            cc::Build::new()
-                .cuda(true)
-                .files(vec![PathBuf::from("src/sloth256_189.cu")])
-                .compile("libsloth256_189_cuda.a");
+    if nvcc.is_ok() {
+        cc::Build::new()
+            .cuda(true)
+            .cudart("static")
+            .file("src/sloth256_189.cu")
+            .compile("libsloth256_189_cuda.a");
 
-            println!("cargo:rustc-cfg=feature=\"cuda\"");
-
-            // Always add -lcudart and try to figure out -L search path.
-            // If the latter fails, it's on user to specify one by setting
-            // RUSTFLAGS environment variable.
-            #[allow(unused_mut, unused_assignments)]
-            let mut libtst = false;
-            let mut libdir = nvcc.to_path_buf();
-            libdir.pop();
-            libdir.pop();
-            #[cfg(target_os = "linux")]
-            {
-                libdir.push("targets");
-                libdir.push(target_arch.to_owned() + "-linux");
-                libdir.push("lib");
-                libtst = true;
-            }
-            #[cfg(target_env = "msvc")]
-            match target_arch.as_str() {
-                "x86_64" => {
-                    libdir.push("lib");
-                    libdir.push("x64");
-                    libtst = true;
-                }
-                "x86" => {
-                    libdir.push("lib");
-                    libdir.push("Win32");
-                    libtst = true;
-                }
-                _ => libtst = false,
-            }
-            if libtst && libdir.is_dir() {
-                println!(
-                    "cargo:rustc-link-search=native={}",
-                    libdir.to_str().unwrap()
-                );
-            }
-            println!("cargo:rustc-link-lib=cudart_static");
-        }
+        println!("cargo:rustc-cfg=feature=\"cuda\"");
     }
 }
