@@ -13,7 +13,7 @@
 #  define alloca(s) _alloca(s)
 # endif
 #endif
-#elif defined(__SIZE_TYPE__)
+#elif defined(__SIZE_TYPE__) && !defined(_OPENCL_BASE_H_)
 typedef __SIZE_TYPE__ size_t;
 #endif
 
@@ -45,6 +45,10 @@ typedef const void *uptr_t;
 #   define inline
 #  endif
 # endif
+#endif
+
+#if defined(__CUDA_ARCH__)
+# define static static __device__
 #endif
 
 #if defined(_LP64) || __SIZEOF_LONG__-0==8
@@ -125,7 +129,7 @@ static inline bool_t vec_is_equal(const void *a, const void *b, size_t num)
     return is_zero(acc);
 }
 
-#if !defined(__SLOTH256_189_NO_ASM__) && \
+#if !defined(__SLOTH256_189_NO_ASM__) && !defined(__CUDA_ARCH__) && \
     (defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X84))
 
 void sqrx_n_mul_mod_256_189(vec256 out, const vec256 a, size_t count,
@@ -251,7 +255,8 @@ static bool_t xor_n_check_mod_256_189(vec256 out, const vec256 a,
 
 #endif
 
-#if __SIZEOF_INT128__-0==16 || __SIZEOF_LONG_LONG__-0==16
+#if (__SIZEOF_INT128__-0==16 || __SIZEOF_LONG_LONG__-0==16) && \
+    !defined(__CUDA_ARCH__)
 
 #if __SIZEOF_LONG_LONG__-0==16
 typedef unsigned long long u128;
@@ -699,7 +704,7 @@ typedef unsigned int u32;
 
 typedef u32 fe26[10];           /* 9x26+22=256 */
 
-#ifdef __OPENCL_C_VERSION__
+#if defined(__OPENCL_C_VERSION__) || defined(__CUDA_ARCH__)
 # define MASK26 0x3ffffff
 # define MASK22 0x3fffff
 #else
@@ -709,7 +714,7 @@ static const u32 MASK26 = 0x3ffffff,
 
 static void to_fe26(fe26 out, const void *in_)
 {
-    const u32 *in = in_;
+    const u32 *in = (const u32 *)in_;
     const union {
         long one;
         char little;
@@ -730,7 +735,7 @@ static void to_fe26(fe26 out, const void *in_)
 
 static void from_fe26(void *out_, const fe26 in)
 {
-    u32 h0, q, *out = out_;
+    u32 h0, q, *out = (u32 *)out_;
     u64 t;
     const union {
         long one;
@@ -1132,6 +1137,9 @@ static int is_adx_avaiable()
 }
 #endif
 
+#ifdef __CUDA_ARCH__
+static
+#endif
 int sloth256_189_encode(unsigned char *inout, size_t len,
                         const unsigned char iv_[32], size_t layers)
 {
@@ -1139,7 +1147,7 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
     size_t i;
     limb_t iv[32/sizeof(limb_t)], *feedback = iv;
     limb_t *block = (limb_t *)inout;
-#ifndef __OPENCL_C_VERSION__
+#if !defined(__OPENCL_C_VERSION__) && !defined(__CUDA_ARCH__)
     const union {
         long one;
         char little;
@@ -1147,10 +1155,10 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
 
     if (!is_endian.little || (size_t)inout%sizeof(limb_t) != 0) {
         len &= ((size_t)0-32);
-        block = alloca(len);
+        block = (limb_t *)alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
-#elif defined(__LITTLE_ENDIAN__)
+#elif defined(__LITTLE_ENDIAN__) || defined(__CUDA_ARCH__)
     /* assert((size_t)inout%sizeof(limb_t) == 0); */
 #else
 # error "unsupported platform"
@@ -1191,7 +1199,7 @@ void sloth256_189_decode(unsigned char *inout, size_t len,
     size_t i;
     limb_t iv[32/sizeof(limb_t)];
     limb_t *block = (limb_t *)inout;
-#ifndef __OPENCL_C_VERSION__
+#if !defined(__OPENCL_C_VERSION__) && !defined(__CUDA_ARCH__)
     const union {
         long one;
         char little;
@@ -1199,10 +1207,10 @@ void sloth256_189_decode(unsigned char *inout, size_t len,
 
     if (!is_endian.little || (size_t)inout%sizeof(limb_t) != 0) {
         len &= ((size_t)0-32);
-        block = alloca(len);
+        block = (limb_t *)alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
-#elif defined(__LITTLE_ENDIAN__)
+#elif defined(__LITTLE_ENDIAN__) || defined(__CUDA_ARCH__)
     /* assert((size_t)inout%sizeof(limb_t) == 0); */
 #else
 # error "unsupported platform"
