@@ -934,7 +934,7 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
         block = (limb_t *)alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
-#elif defined(__LITTLE_ENDIAN__) || defined(__CUDA_ARCH__)
+#elif defined(__LITTLE_ENDIAN__) || (__BYTE_ORDER__-0 == 1234)
     /* assert((size_t)inout%sizeof(limb_t) == 0); */
 #else
 # error "unsupported platform"
@@ -986,7 +986,7 @@ void sloth256_189_decode(unsigned char *inout, size_t len,
         block = (limb_t *)alloca(len);
         limbs_from_le_bytes(block, inout, len);
     }
-#elif defined(__LITTLE_ENDIAN__) || defined(__CUDA_ARCH__)
+#elif defined(__LITTLE_ENDIAN__) || (__BYTE_ORDER__-0 == 1234)
     /* assert((size_t)inout%sizeof(limb_t) == 0); */
 #else
 # error "unsupported platform"
