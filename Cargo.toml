@@ -24,9 +24,6 @@ criterion = "0.3.4"
 rand = "0.8.3"
 rayon = "1.5.1"
 
-[target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dev-dependencies]
-spartan-sloth = { git  = "https://github.com/subspace/spartan-codec.git" }
-
 [[bench]]
 name = "software"
 harness = false
