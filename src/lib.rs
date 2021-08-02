@@ -18,7 +18,7 @@ extern "C" {
     #[cfg(feature = "cuda")]
     pub fn detect_cuda() -> bool;
     #[cfg(feature = "cuda")]
-    pub fn sloth256_189_encode_cuda(
+    pub fn test_1x1_cuda(
         inout: *mut u8,
         len: usize,
         iv_: *const u8,
@@ -481,7 +481,7 @@ mod tests {
             let mut piece = [5u8; 4096];
 
             unsafe {
-                sloth256_189_encode_cuda(
+                test_1x1_cuda(
                     piece.as_mut_ptr(),
                     piece.len(),
                     expanded_iv.as_ptr(),
