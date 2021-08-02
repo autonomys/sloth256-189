@@ -130,7 +130,7 @@ static inline bool_t vec_is_equal(const void *a, const void *b, size_t num)
 }
 
 #if !defined(__SLOTH256_189_NO_ASM__) && !defined(__CUDA_ARCH__) && \
-    (defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X84))
+    (defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64))
 
 void sqrx_n_mul_mod_256_189(vec256 out, const vec256 a, size_t count,
                                         const vec256 b);
