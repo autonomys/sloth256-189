@@ -15,15 +15,6 @@ extern "C" {
         iv_: *const u8,
         layers: usize,
     );
-    #[cfg(feature = "cuda")]
-    pub fn detect_cuda() -> bool;
-    #[cfg(feature = "cuda")]
-    pub fn test_1x1_cuda(
-        inout: *mut u8,
-        len: usize,
-        iv_: *const u8,
-        layers: usize,
-    );
 }
 
 #[derive(Debug)]
@@ -476,19 +467,31 @@ mod tests {
     #[cfg(feature = "cuda")]
     #[test]
     fn test_cuda() {
+        extern "C" {
+            pub fn detect_cuda() -> bool;
+            pub fn test_1x1_cuda(
+                inout: *mut u8,
+                len: usize,
+                iv_: *const u8,
+                layers: usize,
+            ) -> bool;
+        }
+
         if unsafe { detect_cuda() } {
             let expanded_iv = [3u8; 32];
             let mut piece = [5u8; 4096];
 
-            unsafe {
-                test_1x1_cuda(
-                    piece.as_mut_ptr(),
-                    piece.len(),
-                    expanded_iv.as_ptr(),
-                    1,
-                );
-            };
-
+            assert_eq!(
+                unsafe {
+                    test_1x1_cuda(
+                        piece.as_mut_ptr(),
+                        piece.len(),
+                        expanded_iv.as_ptr(),
+                        1,
+                    )
+                },
+                true
+            );
             assert_eq!(piece, CORRECT_ENCODING);
         } else {
             println!("no Nvidia card detected, skip test_cuda");
