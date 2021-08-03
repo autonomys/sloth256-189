@@ -49,6 +49,9 @@ typedef const void *uptr_t;
 
 #if defined(__CUDA_ARCH__)
 # define static static __device__
+# ifndef __LITTLE_ENDIAN__
+#  define __LITTLE_ENDIAN__ 1
+# endif
 #endif
 
 #if defined(_LP64) || __SIZEOF_LONG__-0==8
