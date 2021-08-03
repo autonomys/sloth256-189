@@ -969,6 +969,9 @@ int sloth256_189_encode(unsigned char *inout, size_t len,
     return (int)ret;
 }
 
+#ifdef __CUDA_ARCH__
+static
+#endif
 void sloth256_189_decode(unsigned char *inout, size_t len,
                          const unsigned char iv_[32], size_t layers)
 {
