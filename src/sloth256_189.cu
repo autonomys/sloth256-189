@@ -1,12 +1,16 @@
 #include <cuda.h>
 
-#include "sloth256_189.c"
+__global__ void test_1x1_kernel(unsigned char *piece_n_iv, size_t len,
+                                size_t layers);
+#ifdef __CUDA_ARCH__
+# include "sloth256_189.c"
 
 __global__ void test_1x1_kernel(unsigned char *piece_n_iv, size_t len,
                                 size_t layers)
 {
     (void)sloth256_189_encode(piece_n_iv, len, piece_n_iv+len, layers);
 }
+#endif
 
 extern "C" bool test_1x1_cuda(unsigned char piece[], size_t len,
                               const unsigned char iv[32], size_t layers)
