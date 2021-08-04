@@ -29,6 +29,7 @@ fn main() {
 
     // account for cross-compilation
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
 
     match cfg!(feature = "no-asm") {
         false => {
@@ -49,6 +50,9 @@ fn main() {
     }
     cc.files(&files).compile("libsloth256_189.a");
 
+    if target_os.eq("windows") && !cfg!(target_env = "msvc") {
+        return;
+    }
     // Detect if there is CUDA compiler and engage "cuda" feature accordingly
     let nvcc = match env::var("NVCC") {
         Ok(var) => which::which(var),
