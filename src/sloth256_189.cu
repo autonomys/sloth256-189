@@ -64,14 +64,23 @@ __global__ void demo(unsigned char *flat, size_t layers)
 #  include <iostream>
 using namespace std;
 
+class fatal_cuda_err {
+    cudaError_t err;
+public:
+    fatal_cuda_err(cudaError_t code)
+    {
+        if ((err = code) != cudaSuccess) {
+            cerr << "cudaGetDeviceProperties(&prop, 0) failed: "
+                 << cudaGetErrorString(code) << endl;
+            exit(1);
+        }
+    }
+};
+
 int main(int argc, const char *argv[])
 {
     cudaDeviceProp prop;
-    cudaError_t err = cudaGetDeviceProperties(&prop, 0);
-    if (err != cudaSuccess) {
-        fprintf(stderr, "cudaGetDeviceProperties(&prop, 0) failed\n");
-        exit(1);
-    }
+    fatal_cuda_err err = cudaGetDeviceProperties(&prop, 0);
     cout << prop.name << endl;
     cout << "Capability: " << prop.major << "." << prop.minor << endl;
     cout << "Clock rate: " << prop.clockRate << "kHz" << endl;
@@ -82,7 +91,7 @@ int main(int argc, const char *argv[])
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the
                         // maximum occupancy for a full device launch
-    cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, demo);
+    err = cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, demo);
     cout << "kernel<<<" << minGridSize << ", " << blockSize << ">>>, ";
 
     size_t layers = 1;
@@ -106,11 +115,11 @@ int main(int argc, const char *argv[])
     unsigned char *flat;
 
     if (!prop.integrated) {
-        cudaMalloc(&flat, sz);
+        err = cudaMalloc(&flat, sz);
         cudaMemset(flat, 5, sz);
         cudaMemset(flat, 3, 32);
     } else {
-        cudaMallocManaged(&flat, sz);
+        err = cudaMallocManaged(&flat, sz);
         memset(flat, 5, sz);
         memset(flat, 3, 32);
     }
