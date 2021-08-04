@@ -1,4 +1,13 @@
 #!/usr/bin/env perl
+#
+# ====================================================================
+# Written by Andy Polyakov, @dot-asm, initially for the Subspace Labs.
+# If obtained from CRYPTOGAMS, it's covered by CRYPTOGAMS license.
+# ====================================================================
+#
+# Arithmetic operations modulo 2**256-N, where N is a small number.
+# The N is chosen by adjusting this file's name. For example, if it's
+# called mod256-189..., then the modulus is 2**256-189.
 
 $flavour = shift;
 $output  = shift;
@@ -13,16 +22,18 @@ die "can't locate x86_64-xlate.pl";
 
 open STDOUT,"| \"$^X\" \"$xlate\" $flavour \"$output\"";
 
-$0 =~ /256\-([0-9]+)/; $n=$1; die if $n >= 1<<31;
+$0 =~ /mod256\-([0-9]+)/; $n=$1; die if $n >= 1<<31;
 
 my @acc = map("%r$_",(8..15));
 
 $code.=<<___;
 .text
 
+# void sqrx_n_mul_mod_256_$n(vec256 out, const vec256 a, size_t count,
+#                                        const vec256 b);
 .globl	sqrx_n_mul_mod_256_$n
 .hidden	sqrx_n_mul_mod_256_$n
-.type	sqrx_n_mul_mod_256_$n,\@function,4
+.type	sqrx_n_mul_mod_256_$n,\@function,4,"unwind"
 .align	32
 sqrx_n_mul_mod_256_$n:
 .cfi_startproc
@@ -44,6 +55,7 @@ sqrx_n_mul_mod_256_$n:
 .cfi_push	%rcx
 	lea	-8(%rsp),%rsp
 .cfi_adjust_cfa_offset	8
+.cfi_end_prologue
 
 	mov	%edx,%eax		# counter
 	mov	8*0(%rsi),%rdx		# a[0]
@@ -137,12 +149,14 @@ sqrx_n_mul_mod_256_$n:
 	cmovc	@acc[0],%rbp		# cf ? a[0]+$n : a[0]
 
 	jmp	.Lmulx_data_is_loaded
+.cfi_epilogue
 .cfi_endproc
 .size	sqrx_n_mul_mod_256_$n,.-sqrx_n_mul_mod_256_$n
 
+# void mulx_mod_256_$n(vec256 out, const vec256 a, const vec256 b);
 .globl	mulx_mod_256_$n
 .hidden	mulx_mod_256_$n
-.type	mulx_mod_256_$n,\@function,3
+.type	mulx_mod_256_$n,\@function,3,"unwind"
 .align	32
 mulx_mod_256_$n:
 .cfi_startproc
@@ -162,6 +176,7 @@ mulx_mod_256_$n:
 .cfi_push	%rdi
 	lea	-8*2(%rsp),%rsp
 .cfi_adjust_cfa_offset	16
+.cfi_end_prologue
 
 	mov	%rdx,%rax
 	mov	8*0(%rdx),%rbp		# b[0]
@@ -229,12 +244,14 @@ mulx_mod_256_$n:
 	adox	%rdi,@acc[7]		# of=0
 
 	jmp	.Lreduce64
+.cfi_epilogue
 .cfi_endproc
 .size	mulx_mod_256_$n,.-mulx_mod_256_$n
 
+# void sqrx_mod_256_$n(vec256 out, const vec256 a);
 .globl	sqrx_mod_256_$n
 .hidden	sqrx_mod_256_$n
-.type	sqrx_mod_256_$n,\@function,2
+.type	sqrx_mod_256_$n,\@function,2,"unwind"
 .align	32
 sqrx_mod_256_$n:
 .cfi_startproc
@@ -254,6 +271,7 @@ sqrx_mod_256_$n:
 .cfi_push	%rdi
 	lea	-8*2(%rsp),%rsp
 .cfi_adjust_cfa_offset	16
+.cfi_end_prologue
 
 	mov	8*0(%rsi),%rdx		# a[0]
 	mov	8*1(%rsi),%rcx		# a[1]
@@ -355,15 +373,19 @@ sqrx_mod_256_$n:
 .cfi_restore	%rbp
 	lea	8*9(%rsp),%rsp
 .cfi_adjust_cfa_offset	-8*9
+.cfi_epilogue
 	ret
 .cfi_endproc
 .size	sqrx_mod_256_$n,.-sqrx_mod_256_$n
 
+# void redc_mod_256_$n(vec256 out, const vec256 a);
 .globl	redc_mod_256_$n
 .hidden	redc_mod_256_$n
-.type	redc_mod_256_$n,\@function,2
+.type	redc_mod_256_$n,\@function,2,"unwind"
 .align	32
 redc_mod_256_$n:
+.cfi_startproc
+.cfi_end_prologue
 	mov	8*0(%rsi),@acc[0]
 	mov	8*1(%rsi),@acc[1]
 	mov	8*2(%rsi),@acc[2]
@@ -389,17 +411,22 @@ redc_mod_256_$n:
 	mov	@acc[2],8*2(%rdi)
 	mov	@acc[3],8*3(%rdi)
 
+.cfi_epilogue
 	ret
+.cfi_endproc
 .size	redc_mod_256_$n,.-redc_mod_256_$n
 ___
 
 if (0) {
 $code.=<<___;
+# void add_mod_256_$n(vec256 out, const vec256 a, const vec256 b);
 .globl	add_mod_256_$n
 .hidden	add_mod_256_$n
-.type	add_mod_256_$n,\@function,3
+.type	add_mod_256_$n,\@function,3,"unwind"
 .align	32
 add_mod_256_$n:
+.cfi_startproc
+.cfi_end_prologue
 	mov	8*0(%rsi),@acc[0]
 	mov	8*1(%rsi),@acc[1]
 	mov	8*2(%rsi),@acc[2]
@@ -425,14 +452,19 @@ add_mod_256_$n:
 	mov	@acc[3],8*3(%rdi)
 	mov	@acc[0],8*0(%rdi)
 
+.cfi_epilogue
 	ret
+.cfi_endproc
 .size	add_mod_256_$n,.-add_mod_256_$n
 
+# void sub_mod_256_$n(vec256 out, const vec256 a, const vec256 b);
 .globl	sub_mod_256_$n
 .hidden	sub_mod_256_$n
-.type	sub_mod_256_$n,\@function,3
+.type	sub_mod_256_$n,\@function,3,"unwind"
 .align	32
 sub_mod_256_$n:
+.cfi_startproc
+.cfi_end_prologue
 	mov	8*0(%rsi),@acc[0]
 	mov	8*1(%rsi),@acc[1]
 	mov	8*2(%rsi),@acc[2]
@@ -458,12 +490,15 @@ sub_mod_256_$n:
 	mov	@acc[3],8*3(%rdi)
 	mov	@acc[0],8*0(%rdi)
 
+.cfi_epilogue
 	ret
+.cfi_endproc
 .size	sub_mod_256_$n,.-sub_mod_256_$n
 
+# void xor_mod_256_$n(vec256 out, const vec256 a, const vec256 b);
 .globl	xor_mod_256_$n
 .globl	xor_mod_256_$n
-.type	xor_mod_256_$n,\@function,3
+.type	xor_mod_256_$n,\@function,3,"unwind"
 .align	32
 xor_mod_256_$n:
 .cfi_startproc
@@ -477,6 +512,7 @@ xor_mod_256_$n:
 .cfi_push	%r15
 	lea	-8(%rsp),%rsp
 .cfi_adjust_cfa_offset	8
+.cfi_end_prologue
 
 	mov	8*0(%rsi), @acc[0]	# load |inp|
 	mov	8*1(%rsi), @acc[1]
@@ -534,6 +570,7 @@ xor_mod_256_$n:
 .cfi_restore	%r12
 	lea	8*5(%rsp),%rsp
 .cfi_adjust_cfa_offset	-8*5
+.cfi_epilogue
 	ret
 .cfi_endproc
 .size	xor_mod_256_$n,.-xor_mod_256_$n
@@ -546,6 +583,7 @@ my ($out, $a_ptr, $b_ptr) = $win64 ? ("%rcx", "%rdx", "%r8")
 my @acc = (map("%r$_", (11,10,9)), $a_ptr);
 
 $code.=<<___;
+# void cneg_mod_256_$n(vec256 out, const vec256 a, bool cbit);
 .globl	cneg_mod_256_$n
 .hidden	cneg_mod_256_$n
 .type	cneg_mod_256_$n,\@abi-omnipotent
@@ -588,6 +626,7 @@ cneg_mod_256_$n:
 	ret
 .size	cneg_mod_256_$n,.-cneg_mod_256_$n
 
+# bool xor_n_check_mod_256_$n(vec256 out, const vec256 a, const vec256 b);
 .globl	xor_n_check_mod_256_$n
 .hidden	xor_n_check_mod_256_$n
 .type	xor_n_check_mod_256_$n,\@abi-omnipotent
@@ -617,6 +656,7 @@ xor_n_check_mod_256_$n:
 	ret
 .size	xor_n_check_mod_256_$n,.-xor_n_check_mod_256_$n
 
+# void swap_neigh_256_$n(vec256 out, const vec256 a);
 .globl	swap_neigh_256_$n
 .hidden	swap_neigh_256_$n
 .type	swap_neigh_256_$n,\@abi-omnipotent
