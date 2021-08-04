@@ -470,7 +470,7 @@ static void square_mod_256_189(vec256 out, const vec256 inp)
 
 #else
 
-#if defined(_WIN64) && defined(_MSC_VER)
+#if defined(_WIN64) && defined(_MSC_VER) && !defined(__CUDA_ARCH__)
 # pragma message(__FILE__": consider building with %CC% set to 'clang-cl'")
 #endif
 
