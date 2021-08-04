@@ -1,5 +1,7 @@
 .text	
 
+
+
 .globl	_sqrx_n_mul_mod_256_189
 .private_extern	_sqrx_n_mul_mod_256_189
 
@@ -35,6 +37,7 @@ _sqrx_n_mul_mod_256_189:
 .cfi_offset	%rcx,-72
 	leaq	-8(%rsp),%rsp
 .cfi_adjust_cfa_offset	8
+
 
 	movl	%edx,%eax
 	movq	0(%rsi),%rdx
@@ -128,7 +131,16 @@ L$oop_sqrx:
 	cmovcq	%r8,%rbp
 
 	jmp	L$mulx_data_is_loaded
+.cfi_restore	%r12
+.cfi_restore	%r13
+.cfi_restore	%r14
+.cfi_restore	%r15
+.cfi_restore	%rbp
+.cfi_restore	%rbx
+.cfi_restore	%rcx
+.cfi_restore	%rdi
 .cfi_endproc	
+
 
 
 .globl	_mulx_mod_256_189
@@ -163,6 +175,7 @@ _mulx_mod_256_189:
 .cfi_offset	%rdi,-64
 	leaq	-16(%rsp),%rsp
 .cfi_adjust_cfa_offset	16
+
 
 	movq	%rdx,%rax
 	movq	0(%rdx),%rbp
@@ -230,7 +243,15 @@ L$mulx_data_is_loaded:
 	adoxq	%rdi,%r15
 
 	jmp	L$reduce64
+.cfi_restore	%r12
+.cfi_restore	%r13
+.cfi_restore	%r14
+.cfi_restore	%r15
+.cfi_restore	%rbp
+.cfi_restore	%rbx
+.cfi_restore	%rdi
 .cfi_endproc	
+
 
 
 .globl	_sqrx_mod_256_189
@@ -265,6 +286,7 @@ _sqrx_mod_256_189:
 .cfi_offset	%rdi,-64
 	leaq	-16(%rsp),%rsp
 .cfi_adjust_cfa_offset	16
+
 
 	movq	0(%rsi),%rdx
 	movq	8(%rsi),%rcx
@@ -366,8 +388,10 @@ L$reduce64:
 .cfi_restore	%rbp
 	leaq	72(%rsp),%rsp
 .cfi_adjust_cfa_offset	-8*9
+.cfi_restore	%rdi
 	.byte	0xf3,0xc3
 .cfi_endproc	
+
 
 
 .globl	_redc_mod_256_189
@@ -377,6 +401,8 @@ L$reduce64:
 _redc_mod_256_189:
 .cfi_startproc
 	.byte	0xf3,0x0f,0x1e,0xfa
+
+
 
 	movq	0(%rsi),%r8
 	movq	8(%rsi),%r9
@@ -403,8 +429,10 @@ _redc_mod_256_189:
 	movq	%r10,16(%rdi)
 	movq	%r11,24(%rdi)
 
+
 	.byte	0xf3,0xc3
-.cfi_endproc
+.cfi_endproc	
+
 
 .globl	_cneg_mod_256_189
 .private_extern	_cneg_mod_256_189
@@ -452,6 +480,7 @@ _cneg_mod_256_189:
 .cfi_endproc
 
 
+
 .globl	_xor_n_check_mod_256_189
 .private_extern	_xor_n_check_mod_256_189
 
@@ -483,6 +512,7 @@ _xor_n_check_mod_256_189:
 
 	.byte	0xf3,0xc3
 .cfi_endproc
+
 
 
 .globl	_swap_neigh_256_189

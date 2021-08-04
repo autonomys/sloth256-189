@@ -1,6 +1,8 @@
 OPTION	DOTNAME
 .text$	SEGMENT ALIGN(256) 'CODE'
 
+
+
 PUBLIC	sqrx_n_mul_mod_256_189
 
 
@@ -9,7 +11,7 @@ sqrx_n_mul_mod_256_189	PROC PUBLIC
 	DB	243,15,30,250
 	mov	QWORD PTR[8+rsp],rdi	;WIN64 prologue
 	mov	QWORD PTR[16+rsp],rsi
-	mov	rax,rsp
+	mov	r11,rsp
 $L$SEH_begin_sqrx_n_mul_mod_256_189::
 	mov	rdi,rcx
 	mov	rsi,rdx
@@ -35,6 +37,8 @@ $L$SEH_begin_sqrx_n_mul_mod_256_189::
 	push	rcx
 
 	lea	rsp,QWORD PTR[((-8))+rsp]
+
+$L$SEH_body_sqrx_n_mul_mod_256_189::
 
 
 	mov	eax,edx
@@ -129,9 +133,14 @@ $L$oop_sqrx::
 	cmovc	rbp,r8
 
 	jmp	$L$mulx_data_is_loaded
+$L$SEH_epilogue_sqrx_n_mul_mod_256_189::
+	mov	rdi,QWORD PTR[80+rsp]	;WIN64 epilogue
+	mov	rsi,QWORD PTR[88+rsp]
+
 
 $L$SEH_end_sqrx_n_mul_mod_256_189::
 sqrx_n_mul_mod_256_189	ENDP
+
 
 PUBLIC	mulx_mod_256_189
 
@@ -141,7 +150,7 @@ mulx_mod_256_189	PROC PUBLIC
 	DB	243,15,30,250
 	mov	QWORD PTR[8+rsp],rdi	;WIN64 prologue
 	mov	QWORD PTR[16+rsp],rsi
-	mov	rax,rsp
+	mov	r11,rsp
 $L$SEH_begin_mulx_mod_256_189::
 	mov	rdi,rcx
 	mov	rsi,rdx
@@ -164,6 +173,8 @@ $L$SEH_begin_mulx_mod_256_189::
 	push	rdi
 
 	lea	rsp,QWORD PTR[((-16))+rsp]
+
+$L$SEH_body_mulx_mod_256_189::
 
 
 	mov	rax,rdx
@@ -232,9 +243,14 @@ $L$mulx_data_is_loaded::
 	adox	r15,rdi
 
 	jmp	$L$reduce64
+$L$SEH_epilogue_mulx_mod_256_189::
+	mov	rdi,QWORD PTR[80+rsp]	;WIN64 epilogue
+	mov	rsi,QWORD PTR[88+rsp]
+
 
 $L$SEH_end_mulx_mod_256_189::
 mulx_mod_256_189	ENDP
+
 
 PUBLIC	sqrx_mod_256_189
 
@@ -244,7 +260,7 @@ sqrx_mod_256_189	PROC PUBLIC
 	DB	243,15,30,250
 	mov	QWORD PTR[8+rsp],rdi	;WIN64 prologue
 	mov	QWORD PTR[16+rsp],rsi
-	mov	rax,rsp
+	mov	r11,rsp
 $L$SEH_begin_sqrx_mod_256_189::
 	mov	rdi,rcx
 	mov	rsi,rdx
@@ -266,6 +282,8 @@ $L$SEH_begin_sqrx_mod_256_189::
 	push	rdi
 
 	lea	rsp,QWORD PTR[((-16))+rsp]
+
+$L$SEH_body_sqrx_mod_256_189::
 
 
 	mov	rdx,QWORD PTR[rsi]
@@ -368,12 +386,15 @@ $L$reduce64::
 
 	lea	rsp,QWORD PTR[72+rsp]
 
+$L$SEH_epilogue_sqrx_mod_256_189::
 	mov	rdi,QWORD PTR[8+rsp]	;WIN64 epilogue
 	mov	rsi,QWORD PTR[16+rsp]
+
 	DB	0F3h,0C3h		;repret
 
 $L$SEH_end_sqrx_mod_256_189::
 sqrx_mod_256_189	ENDP
+
 
 PUBLIC	redc_mod_256_189
 
@@ -383,11 +404,14 @@ redc_mod_256_189	PROC PUBLIC
 	DB	243,15,30,250
 	mov	QWORD PTR[8+rsp],rdi	;WIN64 prologue
 	mov	QWORD PTR[16+rsp],rsi
-	mov	rax,rsp
+	mov	r11,rsp
 $L$SEH_begin_redc_mod_256_189::
 	mov	rdi,rcx
 	mov	rsi,rdx
 
+
+
+$L$SEH_body_redc_mod_256_189::
 
 	mov	r8,QWORD PTR[rsi]
 	mov	r9,QWORD PTR[8+rsi]
@@ -414,11 +438,15 @@ $L$SEH_begin_redc_mod_256_189::
 	mov	QWORD PTR[16+rdi],r10
 	mov	QWORD PTR[24+rdi],r11
 
+$L$SEH_epilogue_redc_mod_256_189::
 	mov	rdi,QWORD PTR[8+rsp]	;WIN64 epilogue
 	mov	rsi,QWORD PTR[16+rsp]
+
 	DB	0F3h,0C3h		;repret
+
 $L$SEH_end_redc_mod_256_189::
 redc_mod_256_189	ENDP
+
 PUBLIC	cneg_mod_256_189
 
 
@@ -462,6 +490,7 @@ cneg_mod_256_189	PROC PUBLIC
 	DB	0F3h,0C3h		;repret
 cneg_mod_256_189	ENDP
 
+
 PUBLIC	xor_n_check_mod_256_189
 
 
@@ -491,6 +520,7 @@ xor_n_check_mod_256_189	PROC PUBLIC
 
 	DB	0F3h,0C3h		;repret
 xor_n_check_mod_256_189	ENDP
+
 
 PUBLIC	swap_neigh_256_189
 
@@ -526,9 +556,149 @@ swap_neigh_256_189	ENDP
 .text$	ENDS
 .pdata	SEGMENT READONLY ALIGN(4)
 ALIGN	4
+	DD	imagerel $L$SEH_begin_sqrx_n_mul_mod_256_189
+	DD	imagerel $L$SEH_body_sqrx_n_mul_mod_256_189
+	DD	imagerel $L$SEH_info_sqrx_n_mul_mod_256_189_prologue
+
+	DD	imagerel $L$SEH_body_sqrx_n_mul_mod_256_189
+	DD	imagerel $L$SEH_epilogue_sqrx_n_mul_mod_256_189
+	DD	imagerel $L$SEH_info_sqrx_n_mul_mod_256_189_body
+
+	DD	imagerel $L$SEH_epilogue_sqrx_n_mul_mod_256_189
+	DD	imagerel $L$SEH_end_sqrx_n_mul_mod_256_189
+	DD	imagerel $L$SEH_info_sqrx_n_mul_mod_256_189_epilogue
+
+	DD	imagerel $L$SEH_begin_mulx_mod_256_189
+	DD	imagerel $L$SEH_body_mulx_mod_256_189
+	DD	imagerel $L$SEH_info_mulx_mod_256_189_prologue
+
+	DD	imagerel $L$SEH_body_mulx_mod_256_189
+	DD	imagerel $L$SEH_epilogue_mulx_mod_256_189
+	DD	imagerel $L$SEH_info_mulx_mod_256_189_body
+
+	DD	imagerel $L$SEH_epilogue_mulx_mod_256_189
+	DD	imagerel $L$SEH_end_mulx_mod_256_189
+	DD	imagerel $L$SEH_info_mulx_mod_256_189_epilogue
+
+	DD	imagerel $L$SEH_begin_sqrx_mod_256_189
+	DD	imagerel $L$SEH_body_sqrx_mod_256_189
+	DD	imagerel $L$SEH_info_sqrx_mod_256_189_prologue
+
+	DD	imagerel $L$SEH_body_sqrx_mod_256_189
+	DD	imagerel $L$SEH_epilogue_sqrx_mod_256_189
+	DD	imagerel $L$SEH_info_sqrx_mod_256_189_body
+
+	DD	imagerel $L$SEH_epilogue_sqrx_mod_256_189
+	DD	imagerel $L$SEH_end_sqrx_mod_256_189
+	DD	imagerel $L$SEH_info_sqrx_mod_256_189_epilogue
+
+	DD	imagerel $L$SEH_begin_redc_mod_256_189
+	DD	imagerel $L$SEH_body_redc_mod_256_189
+	DD	imagerel $L$SEH_info_redc_mod_256_189_prologue
+
+	DD	imagerel $L$SEH_body_redc_mod_256_189
+	DD	imagerel $L$SEH_epilogue_redc_mod_256_189
+	DD	imagerel $L$SEH_info_redc_mod_256_189_body
+
+	DD	imagerel $L$SEH_epilogue_redc_mod_256_189
+	DD	imagerel $L$SEH_end_redc_mod_256_189
+	DD	imagerel $L$SEH_info_redc_mod_256_189_epilogue
+
 .pdata	ENDS
 .xdata	SEGMENT READONLY ALIGN(8)
 ALIGN	8
+$L$SEH_info_sqrx_n_mul_mod_256_189_prologue::
+DB	1,0,5,00bh
+DB	0,074h,1,0
+DB	0,064h,2,0
+DB	0,003h
+DB	0,0
+$L$SEH_info_sqrx_n_mul_mod_256_189_body::
+DB	1,0,19,0
+DB	000h,014h,001h,000h
+DB	000h,0f4h,003h,000h
+DB	000h,0e4h,004h,000h
+DB	000h,0d4h,005h,000h
+DB	000h,0c4h,006h,000h
+DB	000h,034h,007h,000h
+DB	000h,054h,008h,000h
+DB	000h,074h,00ah,000h
+DB	000h,064h,00bh,000h
+DB	000h,082h
+DB	000h,000h,000h,000h,000h,000h
+$L$SEH_info_sqrx_n_mul_mod_256_189_epilogue::
+DB	1,0,5,0
+DB	000h,074h,00ah,000h
+DB	000h,064h,00bh,000h
+DB	000h,082h
+DB	000h,000h
+
+$L$SEH_info_mulx_mod_256_189_prologue::
+DB	1,0,5,00bh
+DB	0,074h,1,0
+DB	0,064h,2,0
+DB	0,003h
+DB	0,0
+$L$SEH_info_mulx_mod_256_189_body::
+DB	1,0,17,0
+DB	000h,0f4h,003h,000h
+DB	000h,0e4h,004h,000h
+DB	000h,0d4h,005h,000h
+DB	000h,0c4h,006h,000h
+DB	000h,034h,007h,000h
+DB	000h,054h,008h,000h
+DB	000h,074h,00ah,000h
+DB	000h,064h,00bh,000h
+DB	000h,082h
+DB	000h,000h
+$L$SEH_info_mulx_mod_256_189_epilogue::
+DB	1,0,5,0
+DB	000h,074h,00ah,000h
+DB	000h,064h,00bh,000h
+DB	000h,082h
+DB	000h,000h
+
+$L$SEH_info_sqrx_mod_256_189_prologue::
+DB	1,0,5,00bh
+DB	0,074h,1,0
+DB	0,064h,2,0
+DB	0,003h
+DB	0,0
+$L$SEH_info_sqrx_mod_256_189_body::
+DB	1,0,17,0
+DB	000h,0f4h,003h,000h
+DB	000h,0e4h,004h,000h
+DB	000h,0d4h,005h,000h
+DB	000h,0c4h,006h,000h
+DB	000h,034h,007h,000h
+DB	000h,054h,008h,000h
+DB	000h,074h,00ah,000h
+DB	000h,064h,00bh,000h
+DB	000h,082h
+DB	000h,000h
+$L$SEH_info_sqrx_mod_256_189_epilogue::
+DB	1,0,4,0
+DB	000h,074h,001h,000h
+DB	000h,064h,002h,000h
+DB	000h,000h,000h,000h
+
+$L$SEH_info_redc_mod_256_189_prologue::
+DB	1,0,5,00bh
+DB	0,074h,1,0
+DB	0,064h,2,0
+DB	0,003h
+DB	0,0
+$L$SEH_info_redc_mod_256_189_body::
+DB	1,0,4,0
+DB	000h,074h,001h,000h
+DB	000h,064h,002h,000h
+DB	000h,000h,000h,000h
+$L$SEH_info_redc_mod_256_189_epilogue::
+DB	1,0,4,0
+DB	000h,074h,001h,000h
+DB	000h,064h,002h,000h
+DB	000h,000h,000h,000h
+
 
 .xdata	ENDS
 END

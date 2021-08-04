@@ -1,5 +1,7 @@
 .text	
 
+
+
 .globl	sqrx_n_mul_mod_256_189
 .hidden	sqrx_n_mul_mod_256_189
 .type	sqrx_n_mul_mod_256_189,@function
@@ -35,6 +37,7 @@ sqrx_n_mul_mod_256_189:
 .cfi_offset	%rcx,-72
 	leaq	-8(%rsp),%rsp
 .cfi_adjust_cfa_offset	8
+
 
 	movl	%edx,%eax
 	movq	0(%rsi),%rdx
@@ -128,8 +131,17 @@ sqrx_n_mul_mod_256_189:
 	cmovcq	%r8,%rbp
 
 	jmp	.Lmulx_data_is_loaded
+.cfi_restore	%r12
+.cfi_restore	%r13
+.cfi_restore	%r14
+.cfi_restore	%r15
+.cfi_restore	%rbp
+.cfi_restore	%rbx
+.cfi_restore	%rcx
+.cfi_restore	%rdi
 .cfi_endproc	
 .size	sqrx_n_mul_mod_256_189,.-sqrx_n_mul_mod_256_189
+
 
 .globl	mulx_mod_256_189
 .hidden	mulx_mod_256_189
@@ -163,6 +175,7 @@ mulx_mod_256_189:
 .cfi_offset	%rdi,-64
 	leaq	-16(%rsp),%rsp
 .cfi_adjust_cfa_offset	16
+
 
 	movq	%rdx,%rax
 	movq	0(%rdx),%rbp
@@ -230,8 +243,16 @@ mulx_mod_256_189:
 	adoxq	%rdi,%r15
 
 	jmp	.Lreduce64
+.cfi_restore	%r12
+.cfi_restore	%r13
+.cfi_restore	%r14
+.cfi_restore	%r15
+.cfi_restore	%rbp
+.cfi_restore	%rbx
+.cfi_restore	%rdi
 .cfi_endproc	
 .size	mulx_mod_256_189,.-mulx_mod_256_189
+
 
 .globl	sqrx_mod_256_189
 .hidden	sqrx_mod_256_189
@@ -265,6 +286,7 @@ sqrx_mod_256_189:
 .cfi_offset	%rdi,-64
 	leaq	-16(%rsp),%rsp
 .cfi_adjust_cfa_offset	16
+
 
 	movq	0(%rsi),%rdx
 	movq	8(%rsi),%rcx
@@ -366,9 +388,11 @@ sqrx_mod_256_189:
 .cfi_restore	%rbp
 	leaq	72(%rsp),%rsp
 .cfi_adjust_cfa_offset	-8*9
+.cfi_restore	%rdi
 	.byte	0xf3,0xc3
 .cfi_endproc	
 .size	sqrx_mod_256_189,.-sqrx_mod_256_189
+
 
 .globl	redc_mod_256_189
 .hidden	redc_mod_256_189
@@ -377,6 +401,8 @@ sqrx_mod_256_189:
 redc_mod_256_189:
 .cfi_startproc
 	.byte	0xf3,0x0f,0x1e,0xfa
+
+
 
 	movq	0(%rsi),%r8
 	movq	8(%rsi),%r9
@@ -403,9 +429,11 @@ redc_mod_256_189:
 	movq	%r10,16(%rdi)
 	movq	%r11,24(%rdi)
 
+
 	.byte	0xf3,0xc3
-.cfi_endproc
+.cfi_endproc	
 .size	redc_mod_256_189,.-redc_mod_256_189
+
 .globl	cneg_mod_256_189
 .hidden	cneg_mod_256_189
 .type	cneg_mod_256_189,@function
@@ -452,6 +480,7 @@ cneg_mod_256_189:
 .cfi_endproc
 .size	cneg_mod_256_189,.-cneg_mod_256_189
 
+
 .globl	xor_n_check_mod_256_189
 .hidden	xor_n_check_mod_256_189
 .type	xor_n_check_mod_256_189,@function
@@ -484,6 +513,7 @@ xor_n_check_mod_256_189:
 	.byte	0xf3,0xc3
 .cfi_endproc
 .size	xor_n_check_mod_256_189,.-xor_n_check_mod_256_189
+
 
 .globl	swap_neigh_256_189
 .hidden	swap_neigh_256_189

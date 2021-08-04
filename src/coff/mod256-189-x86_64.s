@@ -1,5 +1,7 @@
 .text	
 
+
+
 .globl	sqrx_n_mul_mod_256_189
 
 .def	sqrx_n_mul_mod_256_189;	.scl 2;	.type 32;	.endef
@@ -8,7 +10,7 @@ sqrx_n_mul_mod_256_189:
 	.byte	0xf3,0x0f,0x1e,0xfa
 	movq	%rdi,8(%rsp)
 	movq	%rsi,16(%rsp)
-	movq	%rsp,%rax
+	movq	%rsp,%r11
 .LSEH_begin_sqrx_n_mul_mod_256_189:
 	movq	%rcx,%rdi
 	movq	%rdx,%rsi
@@ -33,6 +35,8 @@ sqrx_n_mul_mod_256_189:
 	pushq	%rcx
 
 	leaq	-8(%rsp),%rsp
+
+.LSEH_body_sqrx_n_mul_mod_256_189:
 
 
 	movl	%edx,%eax
@@ -127,8 +131,13 @@ sqrx_n_mul_mod_256_189:
 	cmovcq	%r8,%rbp
 
 	jmp	.Lmulx_data_is_loaded
+.LSEH_epilogue_sqrx_n_mul_mod_256_189:
+	mov	80(%rsp),%rdi
+	mov	88(%rsp),%rsi
+
 
 .LSEH_end_sqrx_n_mul_mod_256_189:
+
 
 .globl	mulx_mod_256_189
 
@@ -138,7 +147,7 @@ mulx_mod_256_189:
 	.byte	0xf3,0x0f,0x1e,0xfa
 	movq	%rdi,8(%rsp)
 	movq	%rsi,16(%rsp)
-	movq	%rsp,%rax
+	movq	%rsp,%r11
 .LSEH_begin_mulx_mod_256_189:
 	movq	%rcx,%rdi
 	movq	%rdx,%rsi
@@ -160,6 +169,8 @@ mulx_mod_256_189:
 	pushq	%rdi
 
 	leaq	-16(%rsp),%rsp
+
+.LSEH_body_mulx_mod_256_189:
 
 
 	movq	%rdx,%rax
@@ -228,8 +239,13 @@ mulx_mod_256_189:
 	adoxq	%rdi,%r15
 
 	jmp	.Lreduce64
+.LSEH_epilogue_mulx_mod_256_189:
+	mov	80(%rsp),%rdi
+	mov	88(%rsp),%rsi
+
 
 .LSEH_end_mulx_mod_256_189:
+
 
 .globl	sqrx_mod_256_189
 
@@ -239,7 +255,7 @@ sqrx_mod_256_189:
 	.byte	0xf3,0x0f,0x1e,0xfa
 	movq	%rdi,8(%rsp)
 	movq	%rsi,16(%rsp)
-	movq	%rsp,%rax
+	movq	%rsp,%r11
 .LSEH_begin_sqrx_mod_256_189:
 	movq	%rcx,%rdi
 	movq	%rdx,%rsi
@@ -260,6 +276,8 @@ sqrx_mod_256_189:
 	pushq	%rdi
 
 	leaq	-16(%rsp),%rsp
+
+.LSEH_body_sqrx_mod_256_189:
 
 
 	movq	0(%rsi),%rdx
@@ -362,11 +380,14 @@ sqrx_mod_256_189:
 
 	leaq	72(%rsp),%rsp
 
-	movq	8(%rsp),%rdi
-	movq	16(%rsp),%rsi
+.LSEH_epilogue_sqrx_mod_256_189:
+	mov	8(%rsp),%rdi
+	mov	16(%rsp),%rsi
+
 	.byte	0xf3,0xc3
 
 .LSEH_end_sqrx_mod_256_189:
+
 
 .globl	redc_mod_256_189
 
@@ -376,10 +397,13 @@ redc_mod_256_189:
 	.byte	0xf3,0x0f,0x1e,0xfa
 	movq	%rdi,8(%rsp)
 	movq	%rsi,16(%rsp)
-	movq	%rsp,%rax
+	movq	%rsp,%r11
 .LSEH_begin_redc_mod_256_189:
 	movq	%rcx,%rdi
 	movq	%rdx,%rsi
+
+
+.LSEH_body_redc_mod_256_189:
 
 	movq	0(%rsi),%r8
 	movq	8(%rsi),%r9
@@ -406,10 +430,14 @@ redc_mod_256_189:
 	movq	%r10,16(%rdi)
 	movq	%r11,24(%rdi)
 
-	movq	8(%rsp),%rdi
-	movq	16(%rsp),%rsi
+.LSEH_epilogue_redc_mod_256_189:
+	mov	8(%rsp),%rdi
+	mov	16(%rsp),%rsi
+
 	.byte	0xf3,0xc3
+
 .LSEH_end_redc_mod_256_189:
+
 .globl	cneg_mod_256_189
 
 .def	cneg_mod_256_189;	.scl 2;	.type 32;	.endef
@@ -454,6 +482,7 @@ cneg_mod_256_189:
 	.byte	0xf3,0xc3
 
 
+
 .globl	xor_n_check_mod_256_189
 
 .def	xor_n_check_mod_256_189;	.scl 2;	.type 32;	.endef
@@ -483,6 +512,7 @@ xor_n_check_mod_256_189:
 	adcq	$0,%rax
 
 	.byte	0xf3,0xc3
+
 
 
 .globl	swap_neigh_256_189
@@ -519,5 +549,145 @@ swap_neigh_256_189:
 
 .section	.pdata
 .p2align	2
+.rva	.LSEH_begin_sqrx_n_mul_mod_256_189
+.rva	.LSEH_body_sqrx_n_mul_mod_256_189
+.rva	.LSEH_info_sqrx_n_mul_mod_256_189_prologue
+
+.rva	.LSEH_body_sqrx_n_mul_mod_256_189
+.rva	.LSEH_epilogue_sqrx_n_mul_mod_256_189
+.rva	.LSEH_info_sqrx_n_mul_mod_256_189_body
+
+.rva	.LSEH_epilogue_sqrx_n_mul_mod_256_189
+.rva	.LSEH_end_sqrx_n_mul_mod_256_189
+.rva	.LSEH_info_sqrx_n_mul_mod_256_189_epilogue
+
+.rva	.LSEH_begin_mulx_mod_256_189
+.rva	.LSEH_body_mulx_mod_256_189
+.rva	.LSEH_info_mulx_mod_256_189_prologue
+
+.rva	.LSEH_body_mulx_mod_256_189
+.rva	.LSEH_epilogue_mulx_mod_256_189
+.rva	.LSEH_info_mulx_mod_256_189_body
+
+.rva	.LSEH_epilogue_mulx_mod_256_189
+.rva	.LSEH_end_mulx_mod_256_189
+.rva	.LSEH_info_mulx_mod_256_189_epilogue
+
+.rva	.LSEH_begin_sqrx_mod_256_189
+.rva	.LSEH_body_sqrx_mod_256_189
+.rva	.LSEH_info_sqrx_mod_256_189_prologue
+
+.rva	.LSEH_body_sqrx_mod_256_189
+.rva	.LSEH_epilogue_sqrx_mod_256_189
+.rva	.LSEH_info_sqrx_mod_256_189_body
+
+.rva	.LSEH_epilogue_sqrx_mod_256_189
+.rva	.LSEH_end_sqrx_mod_256_189
+.rva	.LSEH_info_sqrx_mod_256_189_epilogue
+
+.rva	.LSEH_begin_redc_mod_256_189
+.rva	.LSEH_body_redc_mod_256_189
+.rva	.LSEH_info_redc_mod_256_189_prologue
+
+.rva	.LSEH_body_redc_mod_256_189
+.rva	.LSEH_epilogue_redc_mod_256_189
+.rva	.LSEH_info_redc_mod_256_189_body
+
+.rva	.LSEH_epilogue_redc_mod_256_189
+.rva	.LSEH_end_redc_mod_256_189
+.rva	.LSEH_info_redc_mod_256_189_epilogue
+
 .section	.xdata
 .p2align	3
+.LSEH_info_sqrx_n_mul_mod_256_189_prologue:
+.byte	1,0,5,0x0b
+.byte	0,0x74,1,0
+.byte	0,0x64,2,0
+.byte	0,0x03
+.byte	0,0
+.LSEH_info_sqrx_n_mul_mod_256_189_body:
+.byte	1,0,19,0
+.byte	0x00,0x14,0x01,0x00
+.byte	0x00,0xf4,0x03,0x00
+.byte	0x00,0xe4,0x04,0x00
+.byte	0x00,0xd4,0x05,0x00
+.byte	0x00,0xc4,0x06,0x00
+.byte	0x00,0x34,0x07,0x00
+.byte	0x00,0x54,0x08,0x00
+.byte	0x00,0x74,0x0a,0x00
+.byte	0x00,0x64,0x0b,0x00
+.byte	0x00,0x82
+.byte	0x00,0x00,0x00,0x00,0x00,0x00
+.LSEH_info_sqrx_n_mul_mod_256_189_epilogue:
+.byte	1,0,5,0
+.byte	0x00,0x74,0x0a,0x00
+.byte	0x00,0x64,0x0b,0x00
+.byte	0x00,0x82
+.byte	0x00,0x00
+
+.LSEH_info_mulx_mod_256_189_prologue:
+.byte	1,0,5,0x0b
+.byte	0,0x74,1,0
+.byte	0,0x64,2,0
+.byte	0,0x03
+.byte	0,0
+.LSEH_info_mulx_mod_256_189_body:
+.byte	1,0,17,0
+.byte	0x00,0xf4,0x03,0x00
+.byte	0x00,0xe4,0x04,0x00
+.byte	0x00,0xd4,0x05,0x00
+.byte	0x00,0xc4,0x06,0x00
+.byte	0x00,0x34,0x07,0x00
+.byte	0x00,0x54,0x08,0x00
+.byte	0x00,0x74,0x0a,0x00
+.byte	0x00,0x64,0x0b,0x00
+.byte	0x00,0x82
+.byte	0x00,0x00
+.LSEH_info_mulx_mod_256_189_epilogue:
+.byte	1,0,5,0
+.byte	0x00,0x74,0x0a,0x00
+.byte	0x00,0x64,0x0b,0x00
+.byte	0x00,0x82
+.byte	0x00,0x00
+
+.LSEH_info_sqrx_mod_256_189_prologue:
+.byte	1,0,5,0x0b
+.byte	0,0x74,1,0
+.byte	0,0x64,2,0
+.byte	0,0x03
+.byte	0,0
+.LSEH_info_sqrx_mod_256_189_body:
+.byte	1,0,17,0
+.byte	0x00,0xf4,0x03,0x00
+.byte	0x00,0xe4,0x04,0x00
+.byte	0x00,0xd4,0x05,0x00
+.byte	0x00,0xc4,0x06,0x00
+.byte	0x00,0x34,0x07,0x00
+.byte	0x00,0x54,0x08,0x00
+.byte	0x00,0x74,0x0a,0x00
+.byte	0x00,0x64,0x0b,0x00
+.byte	0x00,0x82
+.byte	0x00,0x00
+.LSEH_info_sqrx_mod_256_189_epilogue:
+.byte	1,0,4,0
+.byte	0x00,0x74,0x01,0x00
+.byte	0x00,0x64,0x02,0x00
+.byte	0x00,0x00,0x00,0x00
+
+.LSEH_info_redc_mod_256_189_prologue:
+.byte	1,0,5,0x0b
+.byte	0,0x74,1,0
+.byte	0,0x64,2,0
+.byte	0,0x03
+.byte	0,0
+.LSEH_info_redc_mod_256_189_body:
+.byte	1,0,4,0
+.byte	0x00,0x74,0x01,0x00
+.byte	0x00,0x64,0x02,0x00
+.byte	0x00,0x00,0x00,0x00
+.LSEH_info_redc_mod_256_189_epilogue:
+.byte	1,0,4,0
+.byte	0x00,0x74,0x01,0x00
+.byte	0x00,0x64,0x02,0x00
+.byte	0x00,0x00,0x00,0x00
+
