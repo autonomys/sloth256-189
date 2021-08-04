@@ -64,23 +64,19 @@ __global__ void demo(unsigned char *flat, size_t layers)
 #  include <iostream>
 using namespace std;
 
-class fatal_cuda_err {
-    cudaError_t err;
-public:
-    fatal_cuda_err(cudaError_t code)
-    {
-        if ((err = code) != cudaSuccess) {
-            cerr << "cudaGetDeviceProperties(&prop, 0) failed: "
-                 << cudaGetErrorString(code) << endl;
-            exit(1);
-        }
-    }
-};
+#define CUDA_FATAL(expr) do {				\
+    cudaError_t code = expr;				\
+    if (code != cudaSuccess) {				\
+        cerr << #expr << "@" << __LINE__ << " failed: "	\
+             << cudaGetErrorString(code) << endl;	\
+	exit(1);					\
+    }							\
+} while(0)
 
 int main(int argc, const char *argv[])
 {
     cudaDeviceProp prop;
-    fatal_cuda_err err = cudaGetDeviceProperties(&prop, 0);
+    CUDA_FATAL(cudaGetDeviceProperties(&prop, 0));
     cout << prop.name << endl;
     cout << "Capability: " << prop.major << "." << prop.minor << endl;
     cout << "Clock rate: " << prop.clockRate << "kHz" << endl;
@@ -91,7 +87,8 @@ int main(int argc, const char *argv[])
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the
                         // maximum occupancy for a full device launch
-    err = cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, demo);
+    CUDA_FATAL(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
+                                                  demo));
     cout << "kernel<<<" << minGridSize << ", " << blockSize << ">>>, ";
 
     size_t layers = 1;
@@ -115,11 +112,11 @@ int main(int argc, const char *argv[])
     unsigned char *flat;
 
     if (!prop.integrated) {
-        err = cudaMalloc(&flat, sz);
+        CUDA_FATAL(cudaMalloc(&flat, sz));
         cudaMemset(flat, 5, sz);
         cudaMemset(flat, 3, 32);
     } else {
-        err = cudaMallocManaged(&flat, sz);
+        CUDA_FATAL(cudaMallocManaged(&flat, sz));
         memset(flat, 5, sz);
         memset(flat, 3, 32);
     }
