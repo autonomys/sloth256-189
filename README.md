@@ -78,3 +78,14 @@ undesired. Most notably Perl is not customarily installed on Windows.
 Otherwise this step could be moved to `build.rs`, in which case one
 would remove all subdirectories in `src` and have `build.rs` recreate
 the assembly modules during the build phase.
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  https://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or
+  https://opensource.org/licenses/MIT)
+
+at your option.
