@@ -10,6 +10,7 @@ documentation = "https://docs.rs/sloth256-189"
 repository = "https://github.com/subspace/sloth256-189"
 readme = "README.md"
 include = [
+    "/benches",
     "/src",
     "/Cargo.toml",
     "/LICENSE-APACHE",
