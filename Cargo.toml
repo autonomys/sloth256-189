@@ -2,27 +2,39 @@
 name = "sloth256-189"
 version = "0.1.0"
 description = "Encoder/decoder for the Subspace Network Blockchain based on the SLOTH permutation"
+authors = ["Andy Polyakov <appro@cryptogams.org>"]
 edition = "2018"
-license = "MIT"
-repository = "https://github.com/dot-asm/sloth256-189"
+license = "MIT/Apache-2.0"
+keywords = ["sloth", "subspace"]
+documentation = "https://docs.rs/sloth256-189"
+repository = "https://github.com/subspace/sloth256-189"
+readme = "README.md"
 include = [
     "/src",
     "/Cargo.toml",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/README.md",
 ]
+
+[package.metadata.docs.rs]
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
+
+[dev-dependencies]
+criterion = "0.3.5"
+rand = "0.8.4"
+rayon = "1.5.1"
+
+[build-dependencies]
+# Switch to upstream release when 1.0.70 or newer version of the crate is released
+cc = { git = "https://github.com/alexcrichton/cc-rs" }
+glob = "0.3.0"
+which = "^4.2.2"
 
 [features]
 default = []
 no-asm = []
-
-[build-dependencies]
-cc = { git = "https://github.com/dot-asm/cc-rs", branch = "cuda-dlink" }
-glob = "0.3"
-which = "^4.0"
-
-[dev-dependencies]
-criterion = "0.3.4"
-rand = "0.8.3"
-rayon = "1.5.1"
 
 [[bench]]
 name = "sloth256-189"
