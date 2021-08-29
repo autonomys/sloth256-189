@@ -4,8 +4,8 @@
 </div>
 
 [![CI](https://github.com/subspace/sloth256-189/actions/workflows/ci.yaml/badge.svg)](https://github.com/subspace/sloth256-189/actions/workflows/ci.yaml)
-[![Crates.io](https://img.shields.io/crates/v/sloth256-189?style=flat-square)](https://crates.io/crates/sloth256-189)
-[![Docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/sloth256-189)
+[![Crates.io](https://img.shields.io/crates/v/sloth256-189)](https://crates.io/crates/sloth256-189)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](https://docs.rs/sloth256-189)
 
 This is an adaptation of [SLOTH](https://eprint.iacr.org/2015/366) (slow-timed hash function) into a time-asymmetric
 permutation using a standard CBC block cipher.
