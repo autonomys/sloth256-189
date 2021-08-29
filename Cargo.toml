@@ -25,5 +25,5 @@ rand = "0.8.3"
 rayon = "1.5.1"
 
 [[bench]]
-name = "software"
+name = "sloth256-189"
 harness = false

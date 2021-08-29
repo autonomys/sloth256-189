@@ -1,58 +1,46 @@
-//! A Rust wrapper around C/assembly implmentation of Sloth suggested in
+#![warn(rust_2018_idioms, missing_debug_implementations, missing_docs)]
+//! A Rust wrapper around C/assembly implementation of Sloth suggested in
 //! https://eprint.iacr.org/2015/366, extended for a proof-of-replication,
 //! and instantiated for 2**256-189 modulus.
 
+use std::error::Error;
+use std::fmt;
+
 extern "C" {
-    pub fn sloth256_189_encode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
-    pub fn sloth256_189_decode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize);
+    fn sloth256_189_encode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
+    fn sloth256_189_decode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize);
 }
 
-#[derive(Debug)]
+/// Data bigger than the prime, this is not supported
+#[derive(Debug, Copy, Clone)]
 pub struct DataBiggerThanPrime;
 
-#[derive(Debug, Clone)]
-pub struct Sloth<const PRIME_SIZE_BYTES: usize, const PIECE_SIZE_BYTES: usize>;
-
-impl<const PRIME_SIZE_BYTES: usize, const PIECE_SIZE_BYTES: usize>
-    Sloth<PRIME_SIZE_BYTES, PIECE_SIZE_BYTES>
-{
-    /// Sequentially encodes a 4096 byte piece s.t. a minimum amount of
-    /// wall clock time elapses
-    pub fn encode(
-        &self,
-        piece: &mut [u8; PIECE_SIZE_BYTES],
-        expanded_iv: [u8; PRIME_SIZE_BYTES],
-        layers: usize,
-    ) -> Result<(), DataBiggerThanPrime> {
-        unsafe {
-            if sloth256_189_encode(
-                piece.as_mut_ptr(),
-                piece.len(),
-                expanded_iv.as_ptr(),
-                layers,
-            ) {
-                return Err(DataBiggerThanPrime);
-            }
-        };
-        Ok(())
+impl fmt::Display for DataBiggerThanPrime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Data bigger than the prime, this is not supported")
     }
+}
 
-    /// Sequentially decodes a 4096 byte encoding in time << encode time
-    pub fn decode(
-        &self,
-        piece: &mut [u8; PIECE_SIZE_BYTES],
-        expanded_iv: [u8; PRIME_SIZE_BYTES],
-        layers: usize,
-    ) {
-        unsafe {
-            sloth256_189_decode(
-                piece.as_mut_ptr(),
-                piece.len(),
-                expanded_iv.as_ptr(),
-                layers,
-            )
-        };
-    }
+impl Error for DataBiggerThanPrime {}
+
+/// Sequentially encodes a 4096 byte piece s.t. a minimum amount of
+/// wall clock time elapses
+pub fn encode(
+    piece: &mut [u8; 4096],
+    iv: [u8; 32],
+    layers: usize,
+) -> Result<(), DataBiggerThanPrime> {
+    unsafe {
+        if sloth256_189_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) {
+            return Err(DataBiggerThanPrime);
+        }
+    };
+    Ok(())
+}
+
+/// Sequentially decodes a 4096 byte encoding in time << encode time
+pub fn decode(piece: &mut [u8; 4096], iv: [u8; 32], layers: usize) {
+    unsafe { sloth256_189_decode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) };
 }
 
 #[cfg(test)]
@@ -69,19 +57,14 @@ mod tests {
     // 256 bits
     #[test]
     fn test_random_piece_256_bits() {
-        test_random_piece::<32, 4096>();
-    }
-
-    fn test_random_piece<const PRIME_SIZE_BYTES: usize, const PIECE_SIZE_BYTES: usize>() {
         let expanded_iv = random_bytes();
         let piece = random_bytes();
 
-        let sloth = Sloth::<PRIME_SIZE_BYTES, PIECE_SIZE_BYTES> {};
-        let layers = PIECE_SIZE_BYTES / PRIME_SIZE_BYTES;
+        let layers = 4096 / 32;
         let mut encoding = piece.clone();
-        sloth.encode(&mut encoding, expanded_iv, layers).unwrap();
+        encode(&mut encoding, expanded_iv, layers).unwrap();
         let mut decoding = encoding.clone();
-        sloth.decode(&mut decoding, expanded_iv, layers);
+        decode(&mut decoding, expanded_iv, layers);
 
         // println!("\nPiece is {:?}\n", piece.to_vec());
         // println!("\nDecoding is {:?}\n", decoding.to_vec());
@@ -372,13 +355,12 @@ mod tests {
         let expanded_iv = [3u8; 32];
         let piece = [5u8; 4096];
 
-        let sloth = Sloth::<32, 4096> {};
         let layers = 1;
         let mut encoding = piece.clone();
-        sloth.encode(&mut encoding, expanded_iv, layers).unwrap();
+        encode(&mut encoding, expanded_iv, layers).unwrap();
         assert_eq!(encoding, CORRECT_ENCODING);
         let mut decoding = encoding.clone();
-        sloth.decode(&mut decoding, expanded_iv, layers);
+        decode(&mut decoding, expanded_iv, layers);
 
         assert_eq!(piece.to_vec(), decoding.to_vec());
     }
@@ -387,9 +369,8 @@ mod tests {
     #[test]
     fn test_cuda() {
         extern "C" {
-            pub fn detect_cuda() -> bool;
-            pub fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize)
-                -> bool;
+            fn detect_cuda() -> bool;
+            fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
         }
 
         if unsafe { detect_cuda() } {
