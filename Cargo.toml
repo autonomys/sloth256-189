@@ -34,6 +34,7 @@ which = "^4.2.2"
 
 [features]
 default = []
+# Force-disable ASM x86-64 implemenation for testing/benchmarking purposes
 no-asm = []
 
 [[bench]]

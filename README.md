@@ -1,85 +1,21 @@
-spartan-sloth:
-```
-Software/Encode-single   time:   [2.0037 ms 2.0051 ms 2.0065 ms]
-Software/Encode-parallel time:   [401.25 us 403.03 us 404.78 us]
-Software/Decode          time:   [45.105 us 45.223 us 45.336 us]
-```
+<div align="center">
+  <h1><code>sloth256-189</code></h1>
+  <strong>Encoder/decoder for the <a href="https://subspace.network/">Subspace Network Blockchain</a> based on the <a href="https://eprint.iacr.org/2015/366">SLOTH permutation</a></strong>
+</div>
 
-sloth256-189-wip:
-```
-Software/Encode-single   time:   [278.35 us 278.42 us 278.49 us]  7.2x
-Software/Encode-parallel time:   [49.085 us 49.243 us 49.421 us]  8.2x
-Software/Decode          time:   [1.5111 us 1.5115 us 1.5120 us]  30x
-```
+[![CI](https://github.com/subspace/sloth256-189/actions/workflows/ci.yaml/badge.svg)](https://github.com/subspace/sloth256-189/actions/workflows/ci.yaml)
+[![Crates.io](https://img.shields.io/crates/v/sloth256-189?style=flat-square)](https://crates.io/crates/sloth256-189)
+[![Docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/sloth256-189)
 
-`sqrt_mod_256_189/square_mod_256_189` comes in three "flavours":
-```
-#if detected(__ADX__)
- x86_64 assembly-assisted code path, executed on processors with ADX
- ISA extension.
- Field element is represented as 4 64-bit limbs. Amount of limb
- multiplication operations is 4*4+5.
-#elif __SIZEOF_INT128__-0==16
- Any 64-bit platform with compiler that supports __int128 type, such
- as contemporary gcc or clang, but not Microsoft C.
- Field element is represented as 5 limbs, 1st is 52- and the rest are
- 51-bit values. Amount of limb multiplication operations is 5*5+5.
-#else
- Fallback for everything else. Presumably most suitable for OpenCL.
- Field element is represented as 10 limbs holding 26-bit values
- [with the last one being 22 bits]. Amount of limb multiplication
- operations is 10*10+10. Sensible to vectorize on 32-bit platforms.
-#endif
-```
-Abovementioned amounts of limb multiplication operations don't directly
-translate to performance, but can be used as crude first-order
-approximations. The actual choice is governed rather by underlying
-hardware capabilities. On related note in GPU context. For example, even
-if clang allows you to generate LLVM assembly for 5-limb code with
-`--target=spir`, it doesn't mean that it's optimal choice for specific
-GPU [if any]. As additional unlisted data point, on CUDA we'll be
-looking at 8*8+10.
+This is an adaptation of [SLOTH](https://eprint.iacr.org/2015/366) (slow-timed hash function) into a time-asymmetric
+permutation using a standard CBC block cipher.
 
-As far as sqrt operation goes, all three code paths follow the same
-pattern:
-```
-raise input to ((2**256-189)+1)/4'th power [with dedicated addition chain]
-square the result and compare to the input
-conditionally negate the result accordingly
-```
-Inverse operation, squaring, is:
-```
-square the input
-conditionally negate the result if input was odd
-```
-Individual field multiplication is performed approximately as following:
-```
-uint512 temp = a * b
-temp = lo256(temp) + hi256(temp)*189
-temp = lo256(temp) + hi8(temp)*189
-return lo256(temp) + hi1(temp)*189
-```
-"Approximately" refers to the fact that in sparse representations
-`lo256()` and `hi256()` are not exact, nor explicit in the
-implementation.
+Implementation contains 3 flavors:
+* optimized assembly-assisted implementation for x86-64 processors with ADX ISA extension (Linux, macOS and Windows)
+* any 64-bt platform with support for `__int128` C type (modern GCC/Clang, but not MSVC)
+* fallback for other platforms
 
-ADX code path is selected at run time. For testing purposes assembly
-support can be suppressed with `--features no-asm` at cargo command
-line. Otherwise `build.rs` adds `assembly.S` or
-`win64/mod256-189-x86_64.asm` to build sequence depending on whether or
-not one uses a non-Microsoft or Microsoft compiler. In former case the
-`assembly.S` makes further choice among `coff` (used by MinGW), `elf` (used
-by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
-
-The assembly modules are generated from single Perl script,
-`src/mod256-189-x86_64.pl`, by executing `src/refresh.sh` on a system
-with Perl. It's assumed that universal build-time dependency on Perl is
-undesired. Most notably Perl is not customarily installed on Windows.
-Otherwise this step could be moved to `build.rs`, in which case one
-would remove all subdirectories in `src` and have `build.rs` recreate
-the assembly modules during the build phase.
-
-## License
+### License
 
 Licensed under either of
 
@@ -89,3 +25,9 @@ Licensed under either of
   https://opensource.org/licenses/MIT)
 
 at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in cc-rs by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
