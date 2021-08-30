@@ -3,17 +3,17 @@
 extern crate cc;
 
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use which::which;
 
 #[cfg(target_env = "msvc")]
-fn assembly(files: &mut Vec<PathBuf>) {
-    files.push(PathBuf::from("src/win64/mod256-189-x86_64.asm"))
+fn get_assembly_file() -> PathBuf {
+    PathBuf::from("src/win64/mod256-189-x86_64.asm")
 }
 
 #[cfg(not(target_env = "msvc"))]
-fn assembly(files: &mut Vec<PathBuf>) {
-    files.push(PathBuf::from("src/assembly.S"))
+fn get_assembly_file() -> PathBuf {
+    PathBuf::from("src/assembly.S")
 }
 
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
     // Optimization level depends on whether or not --release is passed
     // or implied.
     #[cfg(target_env = "msvc")]
-    if !env::var("CC").is_ok() && which::which("clang-cl").is_ok() {
+    if env::var("CC").is_err() && which::which("clang-cl").is_ok() {
         env::set_var("CC", "clang-cl");
     }
     let mut cc = cc::Build::new();
@@ -31,34 +31,28 @@ fn main() {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
 
-    match cfg!(feature = "no-asm") {
-        false => {
-            if target_arch.eq("x86_64") {
-                assembly(&mut files);
-            }
-        }
-        true => {
-            println!("Compiling without assembly module");
-            cc.define("__SLOTH256_189_NO_ASM__", None);
-        }
+    if cfg!(feature = "no-asm") {
+        println!("Compiling without assembly module");
+        cc.define("__SLOTH256_189_NO_ASM__", None);
+    } else if target_arch.eq("x86_64") {
+        files.push(get_assembly_file());
     }
+
     cc.flag_if_supported("-mno-avx") // avoid costly transitions
         .flag_if_supported("-fno-builtin-memcpy")
         .flag_if_supported("-Wno-unused-command-line-argument");
+
     if !cfg!(debug_assertions) {
         cc.opt_level(3);
     }
+
     cc.files(&files).compile("libsloth256_189.a");
 
     if target_os.eq("windows") && !cfg!(target_env = "msvc") {
         return;
     }
     // Detect if there is CUDA compiler and engage "cuda" feature accordingly
-    let nvcc = match env::var("NVCC") {
-        Ok(var) => which::which(var),
-        Err(_) => which::which("nvcc"),
-    };
-    if nvcc.is_ok() {
+    if which::which(env::var("NVCC").as_deref().unwrap_or("nvcc")).is_ok() {
         cc::Build::new()
             .cuda(true)
             .cudart("static")
