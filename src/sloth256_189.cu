@@ -39,7 +39,6 @@ extern "C" bool detect_cuda()
     return cudaGetDeviceProperties(&prop, 0) == cudaSuccess;
 }
 
-#define STANDALONE_DEMO  // required if we want to compile .cu file, this is letting the below code become an 'entry' point
 #ifdef STANDALONE_DEMO
 # include <cstdint>
 

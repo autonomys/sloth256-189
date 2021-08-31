@@ -1,4 +1,4 @@
-# sloth256_189 (Documentation)
+# sloth256_189 (Documentation) for CUDA
 
 This is the documentation of both `sloth256_189.c` and its CUDA caller `sloth256_189.cu`.
 - `sloth256_189.c`: general purpose low-level c code. A very efficient and optimized implementation of sloth encoding/decoding.
