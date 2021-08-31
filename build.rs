@@ -1,10 +1,5 @@
-#![allow(unused_imports)]
-
-extern crate cc;
-
 use std::env;
 use std::path::PathBuf;
-use which::which;
 
 #[cfg(target_env = "msvc")]
 fn get_assembly_file() -> PathBuf {
@@ -48,7 +43,7 @@ fn main() {
 
     cc.files(&files).compile("libsloth256_189.a");
 
-    if target_os.eq("windows") && !cfg!(target_env = "msvc") {
+    if target_os == "windows" && !cfg!(target_env = "msvc") {
         return;
     }
     // Detect if there is CUDA compiler and engage "cuda" feature accordingly
