@@ -39,31 +39,34 @@ extern "C" bool detect_cuda()
     return cudaGetDeviceProperties(&prop, 0) == cudaSuccess;
 }
 
+#define STANDALONE_DEMO  // required if we want to compile .cu file, this is letting the below code become an 'entry' point
 #ifdef STANDALONE_DEMO
 # include <cstdint>
 
 __global__ void demo(unsigned char *flat, size_t layers);
 __device__ uint64_t gpu_ticks;
 
-# ifdef __CUDA_ARCH__
+# ifdef __CUDA_ARCH__  // unnecessary for the trial of a standalone .cu compilation
 __global__ void demo(unsigned char *flat, size_t layers)
 {
-    int x = blockDim.x*blockIdx.x + threadIdx.x;
+    int x = blockDim.x*blockIdx.x + threadIdx.x;  // global ID of threads stored in `int x`
 
-    unsigned char *iv = flat + (64+4096)*x;
-    unsigned char *piece = iv + 64;
+    unsigned char *iv = flat + (64+4096)*x;  // getting the respective IV from the flattened array
+    unsigned char *piece = iv + 64;  // although IV is 32 bytes, we allocated 64 bytes for padding
+    // so we have to add 64 to our pointer to move it to the beginning of the piece
 
-    uint64_t start, end;
+    uint64_t start, end;  // for timing
 
-    asm volatile("mov.u64 %0, %%clock64;" : "=l"(start));
-    sloth256_189_encode(piece, 4096, iv, layers);
-    asm volatile("mov.u64 %0, %%clock64;" : "=l"(end));
-    if (x == 0) gpu_ticks = end - start;
+    asm volatile("mov.u64 %0, %%clock64;" : "=l"(start));  // for timing, done in assembly
+    sloth256_189_encode(piece, 4096, iv, layers);  // computation of actual encoding is done in here
+    asm volatile("mov.u64 %0, %%clock64;" : "=l"(end));  // for timing, done in assembly
+    if (x == 0) gpu_ticks = end - start;  // only the first thread computes this
 }
 # else
 #  include <iostream>
 using namespace std;
 
+// unnecessary for the trial of a standalone .cu compilation - BEGIN
 #define CUDA_FATAL(expr) do {				\
     cudaError_t code = expr;				\
     if (code != cudaSuccess) {				\
@@ -72,9 +75,10 @@ using namespace std;
 	exit(1);					\
     }							\
 } while(0)
-
+// // unnecessary for the trial of a standalone .cu compilation - END
 int main(int argc, const char *argv[])
 {
+    // creating problem with nsight, can remove this part - BEGIN
     cudaDeviceProp prop;
     CUDA_FATAL(cudaGetDeviceProperties(&prop, 0));
     cout << prop.name << endl;
@@ -83,15 +87,25 @@ int main(int argc, const char *argv[])
     cout << "Memory clock rate: " << prop.memoryClockRate << "kHz" << endl;
     cout << "L2 cache size: " << prop.l2CacheSize << endl;
     cout << "Shared Memory: " << prop.sharedMemPerBlock << endl;
+    // creating problem with nsight, can remove this part - END
+
+
+    // instead of below, we can give any number to blockSize and minGridSize like this:
+    /*
+    int blockSize = 256;
+    int minGridSize = 30;
+    */
 
     int blockSize;      // The launch configurator returned block size
     int minGridSize;    // The minimum grid size needed to achieve the
                         // maximum occupancy for a full device launch
     CUDA_FATAL(cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
-                                                  demo));
-    cout << "kernel<<<" << minGridSize << ", " << blockSize << ">>>, ";
+                                                  demo));  // creating problem with nsight, can remove this part also
+
+    cout << "kernel<<<" << minGridSize << ", " << blockSize << ">>>, ";  // shows the parameters for max-occupancy
 
     size_t layers = 1;
+    // unnecessary if we are not going to use command-line arguments - BEGIN
     if (argc > 3)
         layers = atoi(argv[3]);
 
@@ -106,11 +120,15 @@ int main(int argc, const char *argv[])
         blockSize = 32;
         minGridSize = 1;
     }
-    cout << "starting <<<" << minGridSize << ", " << blockSize << ">>>" << endl;
+    // unnecessary if we are not going to use command-line arguments - BEGIN
+    cout << "starting <<<" << minGridSize << ", " << blockSize << ">>>" << endl;  // shows the parameters for actual kernel run
 
-    size_t sz = minGridSize * blockSize * (64+4096);
+    size_t sz = minGridSize * blockSize * (64+4096);  // 64 for IV, 4096 for piece, multiplied for each thread
     unsigned char *flat;
 
+
+    // creates problem in nsight, just include the code in `else` part, and remove everything else from the below block
+    // below block - START
     if (!prop.integrated) {
         CUDA_FATAL(cudaMalloc(&flat, sz));
         cudaMemset(flat, 5, sz);
@@ -120,6 +138,13 @@ int main(int argc, const char *argv[])
         memset(flat, 5, sz);
         memset(flat, 3, 32);
     }
+    // below block - END
+    // here is the code inside the else block extracted as nsight safe version
+    /*
+    (cudaMallocManaged(&flat, sz));
+    memset(flat, 5, sz);
+    memset(flat, 3, 32);
+    */
 
     demo<<<minGridSize, blockSize>>>(flat, layers);
 
@@ -127,9 +152,9 @@ int main(int argc, const char *argv[])
 
     cudaFree(flat);
 
-    uint64_t ticks;
-    cudaMemcpyFromSymbol(&ticks, gpu_ticks, sizeof(ticks));
-    cout << "sloth256_189_encode: " << ticks << endl;
+    uint64_t ticks;  // for timing
+    cudaMemcpyFromSymbol(&ticks, gpu_ticks, sizeof(ticks)); // copies tick amount to host
+    cout << "sloth256_189_encode: " << ticks << endl;  // printing ticks in host
 }
 # endif
 #endif
