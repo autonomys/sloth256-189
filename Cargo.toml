@@ -28,8 +28,7 @@ rand = "0.8.4"
 rayon = "1.5.1"
 
 [build-dependencies]
-# Switch to upstream release when 1.0.70 or newer version of the crate is released
-cc = { git = "https://github.com/alexcrichton/cc-rs" }
+cc = "1.0.70"
 glob = "0.3.0"
 which = "^4.2.2"
 
