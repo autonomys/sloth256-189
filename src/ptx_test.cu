@@ -27,7 +27,7 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
     // getting the optimal amount of blocks and threads for throughput
     CUDA_FATAL(cudaOccupancyMaxPotentialBlockSize(&block_amount, &thread_amount, sloth256_189_encode));
 
-    unsigned to_be_processed_size = (block_amount * thread_amount) << 12;  // total worker per round * piece_size (4096)
+    unsigned to_be_processed_size = (block_amount * thread_amount) << 12;  // total worker * piece_size (4096)
     // instead of multiplying with 4096, we can shift by 12
 
     u256* d_piece;
@@ -35,13 +35,14 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
 
     while (true)
     {
-        // it could be that, remaining_piece could be less than the optimal amount of workers we have
-        if (remaining_piece < (to_be_processed))  // so we will adjust our worker amount accordingly
+        // it could be that, remaining_piece_size could be less than the optimal amount of work to be processed
+        if (remaining_piece_size < (to_be_processed_size))  // so we will adjust our worker amount accordingly
         {
-            block_amount = remaining_piece / thread_amount;
+            block_amount = remaining_piece_size / thread_amount;
             // important note in here: the above division should not produce a remainder
             // `thread_amount` will be at most 1024, so during load balancing, send multiples of
             // 1024 pieces to the GPU, to guarantee that the above division will not have any remainder
+            // it is not a good idea to play with thread_amount, since these should be multiple of 32
 
             to_be_processed_size = (block_amount * thread_amount) << 12;  // update our variable
         }
@@ -51,18 +52,22 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
         // Instead of dividing len into 4096, then multiplying it with 32, we can simply shift by 7.
 
         // computing the next range of pieces to be processed, and copying them to GPU memory
-        unsigned to_be_processed_range = processed_piece_size + to_be_processed_size;
-        cudaMemcpy(d_piece, piece, to_be_processed_range, cudaMemcpyHostToDevice);
-        cudaMemcpy(d_iv, iv, (to_be_processed_size >> 7), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_piece, (piece + processed_piece_size >> 2), to_be_processed_size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_iv, (iv + processed_piece_size >> 9), (to_be_processed_size >> 7), cudaMemcpyHostToDevice);
+        // the reason for extra shift by 2 is:
+        // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and allocating
+        // 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
+        // and we have computed the actual size, so we have to divide our computations by 4 in here
 
         sloth256_189_encode<<<block_amount, thread_amount>>>(d_piece, d_iv);  // calling the kernel
 
         if (cudaDeviceSynchronize() == cudaSuccess)
         {
-            cudaMemcpy(piece, d_piece, to_be_processed_range, cudaMemcpyDeviceToHost);  // copy back the result to host
+            cudaMemcpy((piece + processed_piece_size >> 2), d_piece, to_be_processed_size, cudaMemcpyDeviceToHost);
+            // copy back the result to host
         }
 
-        processed_piece_size += to_be_processed_size;  // update the processed_piece
+        processed_piece_size += to_be_processed_size;  // update the processed_piece_size
         remaining_piece_size -= to_be_processed_size;  // likewise :)
 
         if (remaining_piece_size = 0)
