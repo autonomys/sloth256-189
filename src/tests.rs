@@ -331,11 +331,11 @@ fn test_cuda_batch() {
     }
 
     if unsafe { detect_cuda() } {
-        let expanded_ivs = [3u8; 32768];  // 1024 * 32
-        let mut pieces = [5u8; 4194304];  // 1024 * 4096
+        let expanded_ivs = vec![3u8; 32768];  // 1024 * 32
+        let mut pieces = vec![5u8; 4194304];  // 1024 * 4096
 
         assert_eq!(
-            unsafe { test_batches(pieces.as_mut_ptr(), piece.len(), expanded_ivs.as_ptr(), 1,) },
+            unsafe { test_batches(pieces.as_mut_ptr(), pieces.len(), expanded_ivs.as_ptr(), 1,) },
             true
         );
         for i in 0..1024 {

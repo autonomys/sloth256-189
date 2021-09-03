@@ -10,6 +10,16 @@
 
 using namespace std;
 
+#define CUDA_FATAL(expr) do {				\
+    cudaError_t code = expr;				\
+    if (code != cudaSuccess) {				\
+        cerr << #expr << "@" << __LINE__ << " failed: "	\
+             << cudaGetErrorString(code) << endl;	\
+	exit(1);					\
+    }							\
+} while(0)
+
+
 extern "C" bool detect_cuda()
 {
     cudaDeviceProp prop;
@@ -62,8 +72,8 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
         // Instead of dividing len into 4096, then multiplying it with 32, we can simply shift by 7.
 
         // computing the next range of pieces to be processed, and copying them to GPU memory
-        cudaMemcpy(d_piece, (piece + processed_piece_size >> 2), to_be_processed_size, cudaMemcpyHostToDevice);
-        cudaMemcpy(d_iv, (iv + processed_piece_size >> 9), (to_be_processed_size >> 7), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_piece, (piece + (processed_piece_size >> 2)), to_be_processed_size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_iv, (iv + (processed_piece_size >> 9)), (to_be_processed_size >> 7), cudaMemcpyHostToDevice);
         // the reason for the extra shift by 2 is:
         // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and unsigned int
         // is allocating 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
@@ -73,14 +83,14 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
 
         if (cudaDeviceSynchronize() == cudaSuccess)
         {
-            cudaMemcpy((piece + processed_piece_size >> 2), d_piece, to_be_processed_size, cudaMemcpyDeviceToHost);
+            cudaMemcpy((piece + (processed_piece_size >> 2)), d_piece, to_be_processed_size, cudaMemcpyDeviceToHost);
             // copy back the result to host
         }
 
         processed_piece_size += to_be_processed_size;  // update the processed_piece_size
         remaining_piece_size -= to_be_processed_size;  // likewise :)
 
-        if (remaining_piece_size = 0)
+        if (remaining_piece_size == 0)
         {
             cudaFree(d_piece);  // clean-up
             cudaFree(d_iv);  // clean-up
@@ -94,8 +104,8 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
 extern "C" bool test_1x1_cuda(unsigned int piece[], size_t len,
                               const unsigned int iv[32], size_t layers)
 {
-    unsigned int* d_piece;
-    unsigned int* d_iv;
+    u256* d_piece;
+    u256* d_iv;
 
     cudaMalloc(&d_piece, len);
     cudaMalloc(&d_iv, 32);
@@ -115,14 +125,6 @@ extern "C" bool test_1x1_cuda(unsigned int piece[], size_t len,
 }
 
 
-#define CUDA_FATAL(expr) do {				\
-    cudaError_t code = expr;				\
-    if (code != cudaSuccess) {				\
-        cerr << #expr << "@" << __LINE__ << " failed: "	\
-             << cudaGetErrorString(code) << endl;	\
-	exit(1);					\
-    }							\
-} while(0)
 
 
 #ifdef STANDALONE_DEMO
