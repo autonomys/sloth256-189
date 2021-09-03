@@ -302,7 +302,7 @@ fn test_known_piece() {
 
 #[cfg(feature = "cuda")]
 #[test]
-fn test_cuda() {
+fn test_cuda_single_piece() {
     extern "C" {
         fn detect_cuda() -> bool;
         fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
@@ -318,6 +318,31 @@ fn test_cuda() {
         );
         assert_eq!(piece, CORRECT_ENCODING);
     } else {
-        println!("no Nvidia card detected, skip test_cuda");
+        println!("no Nvidia card detected, skip test_cuda_single_piece");
+    }
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn test_cuda_batch() {
+    extern "C" {
+        fn detect_cuda() -> bool;
+        fn test_batches(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
+    }
+
+    if unsafe { detect_cuda() } {
+        let expanded_ivs = [3u8; 32768];  // 1024 * 32
+        let mut pieces = [5u8; 4194304];  // 1024 * 4096
+
+        assert_eq!(
+            unsafe { test_batches(pieces.as_mut_ptr(), piece.len(), expanded_ivs.as_ptr(), 1,) },
+            true
+        );
+        for i in 0..1024 {
+            assert_eq!(pieces[i*4096..(i+1)*4096], CORRECT_ENCODING);
+        }
+
+    } else {
+        println!("no Nvidia card detected, skip test_cuda_batch");
     }
 }
