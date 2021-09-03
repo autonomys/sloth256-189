@@ -21,14 +21,24 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
 {
     int block_amount, thread_amount;
     unsigned remaining_piece_size = len;  // there is `size` in the variable name, since len does not represent
-    // the piece count, but instead the size of the piece_array
-    unsigned processed_piece_size = 0;
+    // the piece count, but instead the size of the piece_array (in bytes)
+    unsigned processed_piece_size = 0;  // in bytes
 
     // getting the optimal amount of blocks and threads for throughput
     CUDA_FATAL(cudaOccupancyMaxPotentialBlockSize(&block_amount, &thread_amount, sloth256_189_encode));
+    // this actually returns the minimum required block_amount for achieving maximum occupancy.
+    // So we can tweak the block_amount up, but it is best to not touch thread_amount
+
+    block_amount = 262144;  // 2**18 = 262144 => 1GB / 4KB
+    // by setting block_amount to 262144, we are going to process 1GB of data per round
+    // 1GB should be ok for the most of the GPUs out there.
+    // this can be tweaked with respect to the GPU model in the future
+    // but we should also consider what happens if user is using another app,
+    // and does not have enough memory in their GPU for our assumption
 
     unsigned to_be_processed_size = (block_amount * thread_amount) << 12;  // total worker * piece_size (4096)
     // instead of multiplying with 4096, we can shift by 12
+    // this is the size of pieces to be processed (in bytes)
 
     u256* d_piece;
     u256* d_iv;
@@ -54,10 +64,10 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
         // computing the next range of pieces to be processed, and copying them to GPU memory
         cudaMemcpy(d_piece, (piece + processed_piece_size >> 2), to_be_processed_size, cudaMemcpyHostToDevice);
         cudaMemcpy(d_iv, (iv + processed_piece_size >> 9), (to_be_processed_size >> 7), cudaMemcpyHostToDevice);
-        // the reason for extra shift by 2 is:
-        // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and allocating
-        // 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
-        // and we have computed the actual size, so we have to divide our computations by 4 in here
+        // the reason for the extra shift by 2 is:
+        // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and unsigned int
+        // is allocating 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
+        // and we have computed the actual size. We have to divide our computations by 4 in here
 
         sloth256_189_encode<<<block_amount, thread_amount>>>(d_piece, d_iv);  // calling the kernel
 
