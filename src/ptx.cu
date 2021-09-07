@@ -8,8 +8,6 @@
 
 #include "encode_ptx.h"
 
-using namespace std;
-
 #define NUM_THREADS 256
 #define NUM_BLOCKS 1024
 #define EIGHT_GB_IN_BYTES 8589934592
@@ -52,7 +50,7 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
     unsigned long long to_be_processed_size, free_mem, total_mem;
     cudaMemGetInfo(&free_mem, &total_mem);  // getting free and total memory of the device
 
-    printf("Free memory on this device is: %llu Bytes\n", free_mem);
+    printf("\nFree memory on this device is: %llu Bytes\n", free_mem);
     printf("Total memory on this device is: %llu Bytes\n", total_mem);  // we are not using this, but it is fancy :)
 
     while (default_round_size > free_mem) {  // if device does not have enough free memory
@@ -73,7 +71,7 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
 
         // it could be that, remaining_piece_size could be less than the default size
         if (remaining_piece_size < (to_be_processed_size)) {  // so we will adjust our worker count accordingly
-            printf("Yo!\n");
+
             block_count = (remaining_piece_size / 4096) / thread_count;
             // since each thread will handle 4096 bytes, the above equation should make sense
             // important note in here: the above division should not produce a remainder
@@ -92,12 +90,12 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
             to_be_processed_size /= 2;
             block_count /= 2;
         }
-        printf("Hey!\n");
+
         if (to_be_processed_size == 0) {  // unfortunately, cudaMalloc does not return an error when size is 0
             fprintf(stderr, "cudaMalloc failed!");  // so we have to check for that manually
             break;
         }
-        printf("Hey2!\n");
+
         cudaStatus = cudaMalloc(&d_iv, (to_be_processed_size / 128 ));
         // iv occupies 32 bytes, piece occupies 4096 bytes.
         // Instead of dividing the size into 4096, then multiplying it with 32, we can divide into 128.
@@ -105,7 +103,7 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
             fprintf(stderr, "cudaMalloc failed!");
             break;
         }
-        printf("Hey3!\n");
+
         // computing the next range of pieces to be processed, and copying them into GPU memory
         cudaStatus = cudaMemcpy(d_piece, (piece + (processed_piece_size / 4)),
                                 to_be_processed_size, cudaMemcpyHostToDevice);
@@ -125,7 +123,7 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
         // and we have computed the actual size. We have to divide our computations by 4 in here
 
         sloth256_189_encode<<<block_count, thread_count>>>(d_piece, d_iv);  // calling the kernel
-        printf("Hey4!\n");
+
         cudaStatus = cudaGetLastError();  // Check for any errors launching the kernel
         if (cudaStatus != cudaSuccess) {
             fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
@@ -145,20 +143,19 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
             fprintf(stderr, "cudaMemcpy failed!");
             break;
         }
-        printf("Hey5!\n");
+
         processed_piece_size += to_be_processed_size;  // update the processed_piece_size
         remaining_piece_size -= to_be_processed_size;  // likewise :)
 
         if (remaining_piece_size == 0) {  // successful!
-            printf("Yo2!\n");
             break;  // Hurry! Get out of the loop
         }
     }
-    printf("Hey6!\n");
+
     cudaFree(d_piece);  // clean-up
     cudaFree(d_iv);  // clean-up
 
-    return cudaStatus;  // if there is an error, cudaStatus will preserve it.
+    return (!cudaStatus);  // cudaStatus is 0 if there is no error, 1 if there is error
 }
 
 
@@ -189,6 +186,7 @@ extern "C" bool test_1x1_cuda(unsigned int piece[], size_t len,
 
 
 #ifdef STANDALONE_DEMO
+using namespace std;
 int main()
 {
 // creating problem with nsight, can remove this part - BEGIN
