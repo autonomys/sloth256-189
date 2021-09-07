@@ -327,15 +327,15 @@ fn test_cuda_single_piece() {
 fn test_cuda_batch() {
     extern "C" {
         fn detect_cuda() -> bool;
-        fn test_batches(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
+        fn batch_encode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
     }
 
     if unsafe { detect_cuda() } {
-        let expanded_ivs = vec![3u8; 32768];  // 1024 * 32
-        let mut pieces = vec![5u8; 4194304];  // 1024 * 4096
+        let expanded_ivs = vec![3u8; 1024 * 32];  // 1024 expanded_ivs
+        let mut pieces = vec![5u8; 1024 * 4096];  // 1024 pieces
 
         assert_eq!(
-            unsafe { test_batches(pieces.as_mut_ptr(), pieces.len(), expanded_ivs.as_ptr(), 1,) },
+            unsafe { batch_encode(pieces.as_mut_ptr(), pieces.len(), expanded_ivs.as_ptr(), 1,) },
             true
         );
         for i in 0..1024 {

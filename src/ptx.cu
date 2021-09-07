@@ -10,6 +10,9 @@
 
 using namespace std;
 
+#define NUM_THREADS 256
+#define NUM_BLOCKS 1024
+
 #define CUDA_FATAL(expr) do {				\
     cudaError_t code = expr;				\
     if (code != cudaSuccess) {				\
@@ -26,7 +29,7 @@ extern "C" bool detect_cuda()
     return cudaGetDeviceProperties(&prop, 0) == cudaSuccess;
 }
 
-extern "C" bool test_batches(unsigned int piece[], size_t len,
+extern "C" bool batch_encode(unsigned int piece[], size_t len,
                              const unsigned int iv[32], size_t layers)
 {
     // len also represents how many bytes in piece[]
@@ -36,11 +39,11 @@ extern "C" bool test_batches(unsigned int piece[], size_t len,
     // the piece count, but instead the size of the piece_array (in bytes)
     unsigned processed_piece_size = 0;  // in bytes
 
-    thread_amount = 256;  // 1 thread is responsible from 1 piece,
+    thread_amount = NUM_THREADS;  // 1 thread is responsible from 1 piece,
     // 1 thread handles 4096 bytes
     // 256 threads handle 1048576 bytes, or 2**20 bytes
 
-    block_amount = 1024;  // 2**10 = 1024
+    block_amount = NUM_BLOCKS;  // 2**10 = 1024
     // 1024 blocks = 1024*256 threads,
     // 256 threads handle 2*20, multiply it with 1024 (2**10) times
     // it will be 2**30 bytes, which is 1GB.

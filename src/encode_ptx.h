@@ -437,6 +437,10 @@ __global__ void sloth256_189_encode(u256* piece_array, u256* expanded_iv)
 	for (int i = 0; i < 128; i++)  // actual sloth_encoding
 	{
 		u32* chunk_ptr = piece_array[i + global_idx * 128];  // getting the related piece from piece_array
+		// the pointer created from the right side is a regular pointer (32-bytes).
+		// we could have replaced all the below `chunk_ptr`s with `piece_array[i + global_idx * 128]`
+		// like it was in the `encode_ptx` function.
+		// this is an optimization to eliminate the re-computations of the same pointer
 
 		xor_x_y(feedback, chunk_ptr, feedback);
 		sqrt_permutation_ptx(chunk_ptr, feedback);
