@@ -7,15 +7,15 @@ use std::fmt;
 
 /// Data bigger than the prime, this is not supported
 #[derive(Debug, Copy, Clone)]
-pub struct DataBiggerThanPrime;
+pub struct CudaError;
 
-impl fmt::Display for DataBiggerThanPrime {
+impl fmt::Display for CudaError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Data bigger than the prime, this is not supported")
+        write!(f, "Some CUDA Error occurred. Aborting...")
     }
 }
 
-impl Error for DataBiggerThanPrime {}
+impl Error for CudaError {}
 
 // importing the functions from .c files
 extern "C" {
@@ -36,10 +36,10 @@ pub fn gpu_encode(
     piece: &mut Vec<u8>,
     iv: Vec<u8>,
     layers: usize,
-) -> Result<(), DataBiggerThanPrime> {
+) -> Result<(), CudaError> {
     unsafe {
         if batch_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) {
-            return Err(DataBiggerThanPrime);
+            return Err(CudaError);
         }
     };
     Ok(())
