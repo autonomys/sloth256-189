@@ -303,46 +303,27 @@ fn test_known_piece() {
 #[cfg(feature = "cuda")]
 #[test]
 fn test_cuda_single_piece() {
-    extern "C" {
-        fn detect_cuda() -> bool;
-        fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
-    }
+    if check_cuda() {
+        let expanded_iv = vec![3u8; 32];
+        let mut piece = vec![5u8; 4096];
 
-    if unsafe { detect_cuda() } {
-        let expanded_iv = [3u8; 32];
-        let mut piece = [5u8; 4096];
-
-        assert_eq!(
-            unsafe { test_1x1_cuda(piece.as_mut_ptr(), piece.len(), expanded_iv.as_ptr(), 1,) },
-            true
-        );
+        assert_eq!(gpu_encode(&mut piece, expanded_iv, 1,), true);
         assert_eq!(piece, CORRECT_ENCODING);
     } else {
-        println!("no Nvidia card detected, skip test_cuda_single_piece");
+        panic!("no Nvidia card detected, skip test_cuda_single_piece");
     }
 }
 
 #[cfg(feature = "cuda")]
 #[test]
 fn test_cuda_batch() {
-    extern "C" {
-        fn detect_cuda() -> bool;
-        fn batch_encode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
-    }
+    if check_cuda() {
+        let expanded_ivs = vec![3u8; 1024 * 32]; // 1024 expanded_ivs
+        let mut pieces = vec![5u8; 1024 * 4096]; // 1024 pieces
 
-    if unsafe { detect_cuda() } {
-        let expanded_ivs = vec![3u8; 1024 * 32];  // 1024 expanded_ivs
-        let mut pieces = vec![5u8; 1024 * 4096];  // 1024 pieces
-
-        assert_eq!(
-            unsafe { batch_encode(pieces.as_mut_ptr(), pieces.len(), expanded_ivs.as_ptr(), 1,) },
-            true
-        );
-        for i in 0..1024 {
-            assert_eq!(pieces[i*4096..(i+1)*4096], CORRECT_ENCODING);
-        }
-
+        assert_eq!(gpu_encode(&mut pieces, expanded_iv, 1,), true);
+        assert_eq!(piece, CORRECT_ENCODING);
     } else {
-        println!("no Nvidia card detected, skip test_cuda_batch");
+        panic!("no Nvidia card detected, skip test_cuda_single_piece");
     }
 }
