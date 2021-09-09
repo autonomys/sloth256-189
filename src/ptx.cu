@@ -155,7 +155,7 @@ extern "C" bool batch_encode(unsigned int piece[], size_t len,
     cudaFree(d_piece);  // clean-up
     cudaFree(d_iv);  // clean-up
 
-    return (!cudaStatus);  // cudaStatus is 0 if there is no error, 1 if there is error
+    return cudaStatus;  // cudaStatus is 0 if there is no error, 1 if there is error
 }
 
 

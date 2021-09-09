@@ -307,7 +307,7 @@ fn test_cuda_single_piece() {
         let expanded_iv = vec![3u8; 32];
         let mut piece = vec![5u8; 4096];
 
-        assert_eq!(gpu_encode(&mut piece, expanded_iv, 1,), true);
+        gpu_test_single_piece(&mut piece, expanded_iv, 1);
         assert_eq!(piece, CORRECT_ENCODING);
     } else {
         panic!("no Nvidia card detected, skip test_cuda_single_piece");
@@ -321,8 +321,10 @@ fn test_cuda_batch() {
         let expanded_ivs = vec![3u8; 1024 * 32]; // 1024 expanded_ivs
         let mut pieces = vec![5u8; 1024 * 4096]; // 1024 pieces
 
-        assert_eq!(gpu_encode(&mut pieces, expanded_iv, 1,), true);
-        assert_eq!(piece, CORRECT_ENCODING);
+        gpu_encode(&mut pieces, expanded_ivs, 1).unwrap();
+        for i in 0..1024 {
+            assert_eq!(pieces[i * 4096..(i + 1) * 4096], CORRECT_ENCODING);
+        }
     } else {
         panic!("no Nvidia card detected, skip test_cuda_single_piece");
     }

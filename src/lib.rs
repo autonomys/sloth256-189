@@ -14,3 +14,4 @@ use cpu_sloth::encode;
 
 use gpu_sloth::check_cuda;
 use gpu_sloth::gpu_encode;
+use gpu_sloth::gpu_test_single_piece;
