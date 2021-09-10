@@ -24,18 +24,16 @@ impl Error for CudaError {}
 extern "C" {
     fn batch_encode(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
     fn detect_cuda() -> bool;
-    fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> ();
+    fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize);
 }
 
+/// checks if CUDA is available in the system
 pub fn check_cuda() -> bool {
-    unsafe {
-        return detect_cuda();
-    }
+    unsafe { detect_cuda() }
 }
 
-/// Sequentially encodes a 4096 byte piece s.t. a minimum amount of
-/// wall clock time elapses
-pub fn gpu_encode(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) -> Result<(), CudaError> {
+/// Sequentially encodes a batch of pieces using CUDA
+pub fn cuda_encode(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) -> Result<(), CudaError> {
     unsafe {
         if batch_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) {
             return Err(CudaError);
@@ -44,6 +42,7 @@ pub fn gpu_encode(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) -> Result<(),
     Ok(())
 }
 
-pub fn gpu_test_single_piece(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) -> () {
+/// Sequentially encodes a 4096 byte piece using CUDA
+pub fn cuda_test_single_piece(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) {
     unsafe { test_1x1_cuda(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) }
 }

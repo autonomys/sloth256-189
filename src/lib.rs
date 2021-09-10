@@ -4,4 +4,4 @@
 //! and instantiated for 2**256-189 modulus.
 
 pub mod cpu;
-pub mod gpu;
+pub mod cuda;
