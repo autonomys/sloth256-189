@@ -38,5 +38,5 @@ default = []
 no-asm = []
 
 [[bench]]
-name = "sloth256-189"
+name = "cpu_sloth"
 harness = false
