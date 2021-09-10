@@ -426,20 +426,17 @@ __global__ void encode_ptx(u256* piece, u256* nonce, u256* farmer_id)
 	}
 }
 
-__global__ void sloth256_189_encode(u32* piece, u32* expanded_iv)
+__global__ void sloth256_189_encode(u256* piece_array, u256* expanded_iv)
 {   // in this version, expanded_iv will be given directly
 
 	int global_idx = threadIdx.x + blockIdx.x * blockDim.x;  // global index of the thread
 
 	u256 feedback;
-	eq_x_y(feedback, expanded_iv + global_idx * 8);  // getting the related feedback from the expanded_iv array
+	eq_x_y(feedback, expanded_iv[global_idx]);  // getting the related feedback from the expanded_iv array
 
 	for (int i = 0; i < 128; i++)  // actual sloth_encoding
 	{
-		u32* chunk_ptr = piece + i * 8 + global_idx * 8 * 128;  // alternate approach to reach piece[i + global_idx * 128]
-		// it is ok to replace `chunk_ptr` with `piece[i + global_idx * 128]`
-		// the reason for extra multiplication with 8's are, unsigned long long's are taking 8 bytes.
-		// this alternate approach may come in hand in the future if we are going to experiment more on coalesced memory access.
+		u32* chunk_ptr = piece_array[i + global_idx * 128];  // getting the related piece from piece_array
 
 		xor_x_y(feedback, chunk_ptr, feedback);
 		sqrt_permutation_ptx(chunk_ptr, feedback);

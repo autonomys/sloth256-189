@@ -10,18 +10,105 @@
 
 using namespace std;
 
+#define CUDA_FATAL(expr) do {				\
+    cudaError_t code = expr;				\
+    if (code != cudaSuccess) {				\
+        cerr << #expr << "@" << __LINE__ << " failed: "	\
+             << cudaGetErrorString(code) << endl;	\
+	exit(1);					\
+    }							\
+} while(0)
+
+
 extern "C" bool detect_cuda()
 {
     cudaDeviceProp prop;
     return cudaGetDeviceProperties(&prop, 0) == cudaSuccess;
 }
 
+extern "C" bool test_batches(unsigned int piece[], size_t len,
+                             const unsigned int iv[32], size_t layers)
+{
+    // len also represents how many bytes in piece[]
+
+    int block_amount, thread_amount;
+    unsigned remaining_piece_size = len;  // there is `size` in the variable name, since len does not represent
+    // the piece count, but instead the size of the piece_array (in bytes)
+    unsigned processed_piece_size = 0;  // in bytes
+
+    thread_amount = 256;  // 1 thread is responsible from 1 piece,
+    // 1 thread handles 4096 bytes
+    // 256 threads handle 1048576 bytes, or 2**20 bytes
+
+    block_amount = 1024;  // 2**10 = 1024
+    // 1024 blocks = 1024*256 threads,
+    // 256 threads handle 2*20, multiply it with 1024 (2**10) times
+    // it will be 2**30 bytes, which is 1GB.
+    // 1GB should be ok for the most of the GPUs out there.
+    // this can be tweaked with respect to the GPU model in the future
+    // but we should also consider what happens if user is using another app (for example: video rendering),
+    // and does not have enough memory in their GPU for our assumption
+
+    unsigned to_be_processed_size = (block_amount * thread_amount) << 12;  // total worker * piece_size (4096)
+    // instead of multiplying with 4096, we can shift by 12
+    // this is the size of pieces to be processed (in bytes)
+
+    u256* d_piece;
+    u256* d_iv;
+
+    while (true)
+    {
+        // it could be that, remaining_piece_size could be less than the optimal amount of work to be processed
+        if (remaining_piece_size < (to_be_processed_size))  // so we will adjust our worker amount accordingly
+        {
+            block_amount = remaining_piece_size / (thread_amount << 12);
+            // since each thread will handle 4096 bytes, the above equation should make sense
+            // important note in here: the above division should not produce a remainder
+            // `thread_amount` will be at most 1024, and at least 32. During load balancing, send multiples of
+            // 1024 pieces to the GPU to be safe, so that the above division will not have any remainder
+
+            to_be_processed_size = (block_amount * thread_amount) << 12;  // update our variable
+        }
+
+        cudaMalloc(&d_piece, to_be_processed_size);
+        cudaMalloc(&d_iv, (to_be_processed_size >> 7));  // iv occupies 32 bytes, piece occupies 4096 bytes.
+        // Instead of dividing the size into 4096, then multiplying it with 32, we can simply shift by 7.
+
+        // computing the next range of pieces to be processed, and copying them to GPU memory
+        cudaMemcpy(d_piece, (piece + (processed_piece_size >> 2)), to_be_processed_size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_iv, (iv + (processed_piece_size >> 9)), (to_be_processed_size >> 7), cudaMemcpyHostToDevice);
+        // the reason for the extra shift by 2 is:
+        // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and unsigned int
+        // is allocating 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
+        // and we have computed the actual size. We have to divide our computations by 4 in here
+
+        sloth256_189_encode<<<block_amount, thread_amount>>>(d_piece, d_iv);  // calling the kernel
+
+        if (cudaDeviceSynchronize() == cudaSuccess)
+        {
+            cudaMemcpy((piece + (processed_piece_size >> 2)), d_piece, to_be_processed_size, cudaMemcpyDeviceToHost);
+            // copy back the result to host
+        }
+
+        processed_piece_size += to_be_processed_size;  // update the processed_piece_size
+        remaining_piece_size -= to_be_processed_size;  // likewise :)
+
+        if (remaining_piece_size == 0)
+        {
+            cudaFree(d_piece);  // clean-up
+            cudaFree(d_iv);  // clean-up
+
+            return true;  // escape from the loop, and end the function
+        }
+    }
+}
+
 
 extern "C" bool test_1x1_cuda(unsigned int piece[], size_t len,
                               const unsigned int iv[32], size_t layers)
 {
-    unsigned int* d_piece;
-    unsigned int* d_iv;
+    u256* d_piece;
+    u256* d_iv;
 
     cudaMalloc(&d_piece, len);
     cudaMalloc(&d_iv, 32);
@@ -41,14 +128,6 @@ extern "C" bool test_1x1_cuda(unsigned int piece[], size_t len,
 }
 
 
-#define CUDA_FATAL(expr) do {				\
-    cudaError_t code = expr;				\
-    if (code != cudaSuccess) {				\
-        cerr << #expr << "@" << __LINE__ << " failed: "	\
-             << cudaGetErrorString(code) << endl;	\
-	exit(1);					\
-    }							\
-} while(0)
 
 
 #ifdef STANDALONE_DEMO
