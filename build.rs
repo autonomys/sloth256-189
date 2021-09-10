@@ -3,12 +3,12 @@ use std::path::PathBuf;
 
 #[cfg(target_env = "msvc")]
 fn get_assembly_file() -> PathBuf {
-    PathBuf::from("src/win64/mod256-189-x86_64.asm")
+    PathBuf::from("src/cpu/win64/mod256-189-x86_64.asm")
 }
 
 #[cfg(not(target_env = "msvc"))]
 fn get_assembly_file() -> PathBuf {
-    PathBuf::from("src/assembly.S")
+    PathBuf::from("src/cpu/assembly.S")
 }
 
 fn main() {
@@ -20,7 +20,7 @@ fn main() {
         env::set_var("CC", "clang-cl");
     }
     let mut cc = cc::Build::new();
-    let mut files = vec![PathBuf::from("src/sloth256_189.c")];
+    let mut files = vec![PathBuf::from("src/cpu/sloth256_189.c")];
 
     // account for cross-compilation
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
@@ -51,7 +51,7 @@ fn main() {
         cc::Build::new()
             .cuda(true)
             .cudart("static")
-            .file("src/sloth256_189.cu")
+            .file("src/cpu/sloth256_189.cu")
             .compile("libsloth256_189_cuda.a");
 
         println!("cargo:rustc-cfg=feature=\"cuda\"");

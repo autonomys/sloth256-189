@@ -52,10 +52,10 @@ implementation.
 ADX code path is selected at run time. For testing purposes assembly
 support can be suppressed with `--features no-asm` at cargo command
 line. Otherwise `build.rs` adds `assembly.S` or
-`win64/mod256-189-x86_64.asm` to build sequence depending on whether or
+`cpu.win64/mod256-189-x86_64.asm` to build sequence depending on whether or
 not one uses a non-Microsoft or Microsoft compiler. In former case the
-`assembly.S` makes further choice among `coff` (used by MinGW), `elf` (used
-by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
+`assembly.S` makes further choice among `cpu.coff` (used by MinGW), `cpu.elf` (used
+by Linux, *BSD, Solaris) or `cpu.mach-o` (used by MacOS) executable formats.
 
 The assembly modules are generated from single Perl script,
 `src/mod256-189-x86_64.pl`, by executing `src/refresh.sh` on a system

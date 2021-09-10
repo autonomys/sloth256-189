@@ -1,4 +1,4 @@
-use super::*;
+use crate::cpu::*;
 use rand::prelude::*;
 
 fn random_bytes<const BYTES: usize>() -> [u8; BYTES] {
