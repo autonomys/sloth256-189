@@ -1,30 +1,4 @@
-use crate::cpu::*;
-use rand::prelude::*;
-
-fn random_bytes<const BYTES: usize>() -> [u8; BYTES] {
-    let mut bytes = [0u8; BYTES];
-    rand::thread_rng().fill(&mut bytes[..]);
-    bytes
-}
-
-// 256 bits
-#[test]
-fn test_random_piece_256_bits() {
-    let expanded_iv = random_bytes();
-    let piece = random_bytes();
-
-    let layers = 4096 / 32;
-    let mut encoding = piece.clone();
-    encode(&mut encoding, expanded_iv, layers).unwrap();
-    let mut decoding = encoding.clone();
-    decode(&mut decoding, expanded_iv, layers);
-
-    // println!("\nPiece is {:?}\n", piece.to_vec());
-    // println!("\nDecoding is {:?}\n", decoding.to_vec());
-    // println!("\nEncoding is {:?}\n", encoding.to_vec());
-
-    assert_eq!(piece.to_vec(), decoding.to_vec());
-}
+use super::*;
 
 static CORRECT_ENCODING: [u8; 4096] = [
     0x97, 0x70, 0x05, 0xd2, 0x7b, 0x0f, 0x2c, 0x8a, 0x8d, 0x22, 0xd9, 0x7e, 0x6c, 0x62, 0x88, 0xdf,
@@ -285,17 +259,24 @@ static CORRECT_ENCODING: [u8; 4096] = [
     0xbd, 0x4b, 0x90, 0x87, 0x82, 0xc5, 0x17, 0x90, 0x09, 0xad, 0x3c, 0x7c, 0x7b, 0x5a, 0x1d, 0x24,
 ];
 
+#[cfg(feature = "cuda")]
 #[test]
-fn test_known_piece() {
-    let expanded_iv = [3u8; 32];
-    let piece = [5u8; 4096];
+fn test_cuda() {
+    extern "C" {
+        fn detect_cuda() -> bool;
+        fn test_1x1_cuda(inout: *mut u8, len: usize, iv_: *const u8, layers: usize) -> bool;
+    }
 
-    let layers = 1;
-    let mut encoding = piece.clone();
-    encode(&mut encoding, expanded_iv, layers).unwrap();
-    assert_eq!(encoding, CORRECT_ENCODING);
-    let mut decoding = encoding.clone();
-    decode(&mut decoding, expanded_iv, layers);
+    if unsafe { detect_cuda() } {
+        let expanded_iv = [3u8; 32];
+        let mut piece = [5u8; 4096];
 
-    assert_eq!(piece.to_vec(), decoding.to_vec());
+        assert_eq!(
+            unsafe { test_1x1_cuda(piece.as_mut_ptr(), piece.len(), expanded_iv.as_ptr(), 1,) },
+            true
+        );
+        assert_eq!(piece, CORRECT_ENCODING);
+    } else {
+        println!("no Nvidia card detected, skip test_cuda");
+    }
 }
