@@ -33,7 +33,7 @@ pub fn check_cuda() -> bool {
 }
 
 /// Sequentially encodes a batch of pieces using CUDA
-pub fn cuda_encode(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) -> Result<(), CudaError> {
+pub fn cuda_encode(piece: &mut Vec<u8>, iv: &[u8], layers: usize) -> Result<(), CudaError> {
     unsafe {
         if batch_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) {
             return Err(CudaError);
@@ -43,6 +43,6 @@ pub fn cuda_encode(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) -> Result<()
 }
 
 /// Sequentially encodes a 4096 byte piece using CUDA
-pub fn cuda_test_single_piece(piece: &mut Vec<u8>, iv: Vec<u8>, layers: usize) {
+pub fn cuda_test_single_piece(piece: &mut Vec<u8>, iv: &[u8], layers: usize) {
     unsafe { test_1x1_cuda(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) }
 }

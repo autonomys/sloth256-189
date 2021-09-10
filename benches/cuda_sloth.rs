@@ -17,24 +17,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let genesis_piece = random_bytes::<4096>();
     let big_piece = random_bytes::<4194304>();
     let expanded_iv = random_bytes::<32>();
+    let expanded_ivs = random_bytes::<32>();
 
     group.bench_with_input("Encode-single", &genesis_piece, |b, &input| {
         b.iter(|| {
             let mut piece = input;
-            sloth256_189::cuda::cuda_test_single_piece(&mut piece, expanded_iv.clone(), 1);
+            sloth256_189::cuda::cuda_test_single_piece(&mut piece, &expanded_iv, 1);
         })
     });
 
     group.bench_with_input("Encode-parallel", &big_piece, |b, &input| {
-        b.iter_custom(|iters| {
-            let start = Instant::now();
-
-            black_box((0..iters).into_par_iter().for_each(|_i| {
-                let mut piece = input;
-                sloth256_189::cuda::cuda_encode(&mut piece, expanded_iv.clone(), 1).unwrap();
-            }));
-
-            start.elapsed()
+        b.iter(|| {
+            let mut piece = input;
+            sloth256_189::cuda::cuda_encode(&mut piece, &expanded_iv, 1);
         })
     });
 
