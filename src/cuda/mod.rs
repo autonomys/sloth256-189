@@ -15,7 +15,12 @@ pub struct CudaError;
 
 impl fmt::Display for CudaError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Some CUDA Error occurred. Aborting...")
+        write!(
+            f,
+            "Some CUDA Error occurred. GPU operation failed with error code..."
+        )
+        // TODO
+        // configure this for different error types
     }
 }
 
@@ -39,6 +44,7 @@ pub fn check_cuda() -> bool {
 
 /// Sequentially encodes a batch of pieces using CUDA
 pub fn cuda_encode(piece: &mut Vec<u8>, iv: &[u8], layers: usize) -> Result<(), CudaError> {
+    assert_eq!(piece.len() % (1024 * 4096), 0); // at least 1024 piece should be sent to GPU for batch
     unsafe {
         if sloth256_189_cuda_batch_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) {
             return Err(CudaError);

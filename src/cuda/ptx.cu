@@ -12,15 +12,6 @@
 #define NUM_BLOCKS 1024
 #define EIGHT_GB_IN_BYTES 8589934592
 
-#define CUDA_FATAL(expr) do {				\
-    cudaError_t code = expr;				\
-    if (code != cudaSuccess) {				\
-        cerr << #expr << "@" << __LINE__ << " failed: "	\
-             << cudaGetErrorString(code) << endl;	\
-	exit(1);					\
-    }							\
-} while(0)
-
 
 extern "C" bool detect_cuda()
 {
@@ -28,11 +19,11 @@ extern "C" bool detect_cuda()
     return cudaGetDeviceProperties(&prop, 0) == cudaSuccess;
 }
 
-extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
+extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
                              const unsigned int iv[32], size_t layers)
 {   // len also represents how many bytes in piece[]
 
-    cudaError_t cudaStatus;  // for handling potential CUDA errors
+    int cudaStatus;  // for handling potential CUDA errors
 
     int block_count, thread_count;
     unsigned remaining_piece_size = len;  // there is `size` in the variable name, since len does not represent
@@ -50,14 +41,14 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     unsigned long long to_be_processed_size, free_mem, total_mem;
     cudaMemGetInfo(&free_mem, &total_mem);  // getting free and total memory of the device
 
-    printf("\nFree memory on this device is: %llu Bytes\n", free_mem);
-    printf("Total memory on this device is: %llu Bytes\n", total_mem);  // we are not using this, but it is fancy :)
+    //printf("\nFree memory on this device is: %llu Bytes\n", free_mem);
+    //printf("Total memory on this device is: %llu Bytes\n", total_mem);  // we are not using this, but it is fancy :)
 
     while (default_round_size > free_mem) {  // if device does not have enough free memory
         default_round_size /= 2;  // make the memory requirement smaller
     }
 
-    printf("Picked the default amount of memory to be allocated in each round as: %llu Bytes\n", default_round_size);
+    //printf("Picked the default amount of memory to be allocated in each round as: %llu Bytes\n", default_round_size);
 
     block_count = (default_round_size / 4096) / thread_count;  // we want to keep thread_count at 256 for CUDA reasons
     // so we are manipulating block_count instead.
@@ -81,7 +72,7 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
             to_be_processed_size = block_count * thread_count * 4096;  // update our variable
         }
 
-        printf("Trying to allocate %llu Bytes\n", to_be_processed_size);
+        //printf("Trying to allocate %llu Bytes\n", to_be_processed_size);
         cudaStatus = cudaMalloc(&d_piece, to_be_processed_size);  // trying to allocate memory
         // this might fail, due to User may have opened a program that heavily utilizes the GPU
 
@@ -92,7 +83,7 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         }
 
         if (to_be_processed_size == 0) {  // unfortunately, cudaMalloc does not return an error when size is 0
-            fprintf(stderr, "cudaMalloc failed!");  // so we have to check for that manually
+            cudaStatus = 2;  // cudaMalloc failed!
             break;
         }
 
@@ -100,7 +91,7 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         // iv occupies 32 bytes, piece occupies 4096 bytes.
         // Instead of dividing the size into 4096, then multiplying it with 32, we can divide into 128.
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaMalloc failed!");
+            cudaStatus = 3;  // cudaMalloc failed!
             break;
         }
 
@@ -108,13 +99,13 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         cudaStatus = cudaMemcpy(d_piece, (piece + (processed_piece_size / 4)),
                                 to_be_processed_size, cudaMemcpyHostToDevice);
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaMemcpy failed!");
+            cudaStatus = 4;  // cudaMemcpy failed!
             break;
         }
         cudaStatus = cudaMemcpy(d_iv, (iv + (processed_piece_size / 512)),
                                 (to_be_processed_size / 128), cudaMemcpyHostToDevice);
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaMemcpy failed!");
+            cudaStatus = 5;  // cudaMemcpy failed!
             break;
         }
         // the reason for the extra division by 4 is:
@@ -126,14 +117,15 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
 
         cudaStatus = cudaGetLastError();  // Check for any errors launching the kernel
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+            cudaStatus = 6;  // Kernel launch failed
             break;
         }
 
         cudaStatus = cudaDeviceSynchronize();
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaDeviceSynchronize returned error code %d, CUDA operation did not finish correctly,
-            returning back to CPU...\n", cudaStatus);
+            // cudaDeviceSynchronize returned error code %d, CUDA operation did not finish correctly,
+            // returning back to CPU...
+            cudaStatus = 7;
             break;
         }
 
@@ -141,7 +133,7 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
                                 to_be_processed_size, cudaMemcpyDeviceToHost);
         // copy back the result to host, again extra division by 4 because of pointer arithmetic
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaMemcpy failed!");
+            cudaStatus = 7;  // cudaMemcpy failed!
             break;
         }
 
@@ -157,4 +149,5 @@ extern "C" bool sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     cudaFree(d_iv);  // clean-up
 
     return cudaStatus;  // cudaStatus is 0 if there is no error, 1 if there is error
+    // and other numbers for specific errors that we inspected for
 }
