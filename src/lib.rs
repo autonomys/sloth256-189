@@ -3,5 +3,6 @@
 //! https://eprint.iacr.org/2015/366, extended for a proof-of-replication,
 //! and instantiated for 2**256-189 modulus.
 
+mod a_piece;
 pub mod cpu;
 pub mod cuda;
