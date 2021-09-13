@@ -36,7 +36,7 @@ which = "^4.2.2"
 default = []
 # Force-disable ASM x86-64 implemenation for testing/benchmarking purposes
 no-asm = []
-rust = []
+cuda = []
 
 [[bench]]
 name = "cpu_sloth"

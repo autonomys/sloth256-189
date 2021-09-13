@@ -426,7 +426,7 @@ __global__ void encode_ptx(u256* piece, u256* nonce, u256* farmer_id)
 	}
 }
 
-__global__ void sloth256_189_encode(u256* piece_array, u256* expanded_iv)
+__global__ void sloth256_189_encode_cuda(u256* piece_array, u256* expanded_iv)
 {   // in this version, expanded_iv will be given directly
 
 	int global_idx = threadIdx.x + blockIdx.x * blockDim.x;  // global index of the thread

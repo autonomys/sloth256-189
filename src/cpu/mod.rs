@@ -1,7 +1,6 @@
 //! A Rust wrapper around C/assembly implementation of Sloth suggested in
 //! https://eprint.iacr.org/2015/366, supporting all major platforms
 
-
 use std::error::Error;
 use std::fmt;
 

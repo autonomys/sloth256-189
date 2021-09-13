@@ -261,20 +261,6 @@ static CORRECT_ENCODING: [u8; 4096] = [
 
 #[cfg(feature = "cuda")]
 #[test]
-fn test_cuda_single_piece() {
-    if check_cuda() {
-        let expanded_iv = vec![3u8; 32];
-        let mut piece = vec![5u8; 4096];
-
-        cuda_test_single_piece(&mut piece, &expanded_iv, 1);
-        assert_eq!(piece, CORRECT_ENCODING);
-    } else {
-        panic!("no Nvidia card detected, skip test_cuda_single_piece");
-    }
-}
-
-#[cfg(feature = "cuda")]
-#[test]
 fn test_cuda_batch() {
     if check_cuda() {
         let expanded_ivs = vec![3u8; 1024 * 32]; // 1024 expanded_ivs

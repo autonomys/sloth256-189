@@ -10,7 +10,7 @@ fn random_bytes<const BYTES: usize>() -> [u8; BYTES] {
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sloth256-189-cpu");
+    let mut group = c.benchmark_group("cpu");
     group.sample_size(500);
     group.measurement_time(Duration::from_secs(30));
 
