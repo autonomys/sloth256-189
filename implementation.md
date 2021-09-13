@@ -17,7 +17,7 @@
  operations is 10*10+10. Sensible to vectorize on 32-bit platforms.
 #endif
 ```
-Abovementioned amounts of limb multiplication operations don't directly
+Above-mentioned amounts of limb multiplication operations don't directly
 translate to performance, but can be used as crude first-order
 approximations. The actual choice is governed rather by underlying
 hardware capabilities. On related note in GPU context. For example, even
@@ -52,15 +52,15 @@ implementation.
 ADX code path is selected at run time. For testing purposes assembly
 support can be suppressed with `--features no-asm` at cargo command
 line. Otherwise `build.rs` adds `assembly.S` or
-`win64/mod256-189-x86_64.asm` to build sequence depending on whether or
-not one uses a non-Microsoft or Microsoft compiler. In former case the
-`assembly.S` makes further choice among `coff` (used by MinGW), `elf` (used
-by Linux, *BSD, Solaris) or `mach-o` (used by MacOS) executable formats.
+`cpu/win64/mod256-189-x86_64.asm` to build sequence depending on whether 
+one uses a non-Microsoft or Microsoft compiler. In former case the
+`assembly.S` makes further choice among `cpu/coff` (used by MinGW), `cpu/elf` (used
+by Linux, *BSD, Solaris) or `cpu/mach-o` (used by MacOS) executable formats.
 
 The assembly modules are generated from single Perl script,
 `src/mod256-189-x86_64.pl`, by executing `src/refresh.sh` on a system
 with Perl. It's assumed that universal build-time dependency on Perl is
 undesired. Most notably Perl is not customarily installed on Windows.
-Otherwise this step could be moved to `build.rs`, in which case one
+Otherwise, this step could be moved to `build.rs`, in which case one
 would remove all subdirectories in `src` and have `build.rs` recreate
 the assembly modules during the build phase.
