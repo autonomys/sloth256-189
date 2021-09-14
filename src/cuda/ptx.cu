@@ -133,7 +133,7 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
                                 to_be_processed_size, cudaMemcpyDeviceToHost);
         // copy back the result to host, again extra division by 4 because of pointer arithmetic
         if (cudaStatus != cudaSuccess) {
-            cudaStatus = 7;  // cudaMemcpy failed!
+            cudaStatus = 8;  // cudaMemcpy failed!
             break;
         }
 
