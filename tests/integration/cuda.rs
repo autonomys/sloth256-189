@@ -21,7 +21,7 @@ fn test_random_piece() {
 
     // Verify with CPU implementation as we don't have GPU-based decoding
     for encoding in encodings.chunks_exact(4096) {
-        let mut decoding = encoding.try_into().unwrap();
+        let mut decoding: [u8; 4096] = encoding.try_into().unwrap();
         cpu::decode(&mut decoding, &expanded_iv, layers);
 
         assert_eq!(piece, decoding);
