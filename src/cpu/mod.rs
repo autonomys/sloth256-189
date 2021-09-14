@@ -61,7 +61,7 @@ pub fn encode(piece: &mut [u8], iv: &[u8], layers: usize) -> Result<(), EncodeEr
 }
 
 /// Sequentially decodes a 4096 byte encoding in time << encode time
-pub fn decode(piece: &mut [u8; 4096], iv: [u8; 32], layers: usize) -> Result<(), DecodeError> {
+pub fn decode(piece: &mut [u8], iv: &[u8], layers: usize) -> Result<(), DecodeError> {
     if piece.len() != 4096 {
         return Err(DecodeError::InvalidPiece(piece.len()));
     }
