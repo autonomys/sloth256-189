@@ -57,7 +57,8 @@ pub fn check_cuda() -> bool {
 
 /// Sequentially encodes a batch of pieces using CUDA
 pub fn cuda_encode(piece: &mut Vec<u8>, iv: &[u8], layers: usize) -> Result<(), CudaError> {
-    assert_eq!(piece.len() % (1024 * 4096), 0); // at least 1024 piece should be sent to GPU for batch
+    assert_eq!(piece.len() % (1024 * 4096), 0); // multiples of 1024 pieces should be sent to GPU for batch
+    assert_eq!(iv.len() % (1024 * 32), 0); // multiples of 1024 iv's should be sent to GPU
     unsafe {
         let return_code =
             sloth256_189_cuda_batch_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers);

@@ -1,7 +1,6 @@
 use crate::a_piece::CORRECT_ENCODING;
 use crate::cuda::*;
 
-#[cfg(feature = "cuda")]
 #[test]
 fn test_cuda_batch() {
     if check_cuda() {
