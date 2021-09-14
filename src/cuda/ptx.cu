@@ -13,7 +13,7 @@
 #define EIGHT_GB_IN_BYTES 8589934592
 
 
-extern "C" bool detect_cuda()
+extern "C" bool is_cuda_available()
 {
     cudaDeviceProp prop;
     return cudaGetDeviceProperties(&prop, 0) == cudaSuccess;
@@ -39,7 +39,11 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     // we will tweak this down below with respect to the current available device.
 
     unsigned long long to_be_processed_size, free_mem, total_mem;
-    cudaMemGetInfo(&free_mem, &total_mem);  // getting free and total memory of the device
+
+    // Getting free and total memory of the device
+    if (cudaMemGetInfo(&free_mem, &total_mem) != cudaSuccess) {
+      return 1;
+    }
 
     //printf("\nFree memory on this device is: %llu Bytes\n", free_mem);
     //printf("Total memory on this device is: %llu Bytes\n", total_mem);  // we are not using this, but it is fancy :)
@@ -115,9 +119,11 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
 
         sloth256_189_encode_cuda<<<block_count, thread_count>>>(d_piece, d_iv);  // calling the kernel
 
-        cudaStatus = cudaGetLastError();  // Check for any errors launching the kernel
+        // Check for any errors launching the kernel
+        cudaStatus = cudaGetLastError();
         if (cudaStatus != cudaSuccess) {
-            cudaStatus = 6;  // Kernel launch failed
+            // Kernel launch failed
+            cudaStatus = 6;
             break;
         }
 

@@ -1,12 +1,11 @@
 #![warn(rust_2018_idioms, missing_debug_implementations, missing_docs)]
-//! A Rust wrapper around both C/assembly and CUDA implementation of Sloth suggested in
-//! https://eprint.iacr.org/2015/366, extended for a proof-of-replication,
-//! and instantiated for 2**256-189 modulus.
-
-#[cfg(test)]
-mod a_piece;
-
-#[cfg(feature = "cuda")]
-pub mod cuda;
+//! A Rust wrapper around both C/assembly and CUDA implementation of Sloth permutation suggested in
+//! https://eprint.iacr.org/2015/366, extended for a proof-of-replication, and instantiated for
+//! 2**256-189 modulus used in Subspace Network.
+//!
+//! Universal CPU implementation is always available, for CUDA support make sure to enable `coda`
+//! feature and have CUDA toolchain installed.
 
 pub mod cpu;
+#[cfg(feature = "cuda")]
+pub mod cuda;
