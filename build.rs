@@ -37,17 +37,13 @@ fn main() {
         .flag_if_supported("-fno-builtin-memcpy")
         .flag_if_supported("-Wno-unused-command-line-argument");
 
-    if !cfg!(debug_assertions) {
-        cc.opt_level(3);
-    }
-
     cc.files(&files).compile("libsloth256_189.a");
 
     if target_os == "windows" && !cfg!(target_env = "msvc") {
         return;
     }
-    // Detect if there is CUDA compiler and engage "cuda" feature accordingly
-    if which::which(env::var("NVCC").as_deref().unwrap_or("nvcc")).is_ok() {
+
+    if cfg!(feature = "cuda") {
         cc::Build::new()
             .cuda(true)
             .cudart("static")
