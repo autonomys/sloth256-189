@@ -12,6 +12,11 @@ fn get_assembly_file() -> PathBuf {
 }
 
 fn main() {
+    if std::env::var("DOCS_RS").is_ok() {
+        // Skip everything when building docs on docs.rs
+        return;
+    }
+
     // Set CC environment variable to choose alternative C compiler.
     // Optimization level depends on whether or not --release is passed
     // or implied.

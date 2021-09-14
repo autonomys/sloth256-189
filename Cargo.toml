@@ -25,6 +25,7 @@ include = [
 ]
 
 [package.metadata.docs.rs]
+features = ["cuda"]
 default-target = "x86_64-unknown-linux-gnu"
 targets = []
 
