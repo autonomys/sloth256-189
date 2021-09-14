@@ -25,6 +25,8 @@ fn main() {
         env::set_var("CC", "clang-cl");
     }
     let mut cc = cc::Build::new();
+    cc.extra_warnings(true);
+    cc.warnings_into_errors(true);
     let mut files = vec![PathBuf::from("src/cpu/sloth256_189.c")];
 
     // account for cross-compilation
@@ -52,6 +54,8 @@ fn main() {
         cc::Build::new()
             .cuda(true)
             .cudart("static")
+            .extra_warnings(true)
+            .warnings_into_errors(true)
             .file("src/cuda/ptx.cu")
             .compile("libsloth256_189_cuda.a");
 
