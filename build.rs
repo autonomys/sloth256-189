@@ -51,7 +51,7 @@ fn main() {
         cc::Build::new()
             .cuda(true)
             .cudart("static")
-            .file("src/cpu/sloth256_189.cu")
+            .file("src/cuda/ptx.cu")
             .compile("libsloth256_189_cuda.a");
 
         println!("cargo:rustc-cfg=feature=\"cuda\"");

@@ -10,7 +10,7 @@ fn random_bytes<const BYTES: usize>() -> [u8; BYTES] {
 }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
-    let mut group = c.benchmark_group("sloth256-189");
+    let mut group = c.benchmark_group("cpu");
     group.sample_size(500);
     group.measurement_time(Duration::from_secs(30));
 
@@ -20,7 +20,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_with_input("Encode-single", &genesis_piece, |b, &input| {
         b.iter(|| {
             let mut piece = input;
-            sloth256_189::encode(&mut piece, expanded_iv, 1).unwrap();
+            sloth256_189::cpu::encode(&mut piece, expanded_iv, 1).unwrap();
         })
     });
 
@@ -30,7 +30,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
             black_box((0..iters).into_par_iter().for_each(|_i| {
                 let mut piece = input;
-                sloth256_189::encode(&mut piece, expanded_iv, 1).unwrap();
+                sloth256_189::cpu::encode(&mut piece, expanded_iv, 1).unwrap();
             }));
 
             start.elapsed()
@@ -38,12 +38,12 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     });
 
     let mut encoding = genesis_piece;
-    sloth256_189::encode(&mut encoding, expanded_iv, 1).unwrap();
+    sloth256_189::cpu::encode(&mut encoding, expanded_iv, 1).unwrap();
 
     group.bench_with_input("Decode", &encoding, |b, &input| {
         b.iter(|| {
             let mut piece = input;
-            sloth256_189::decode(&mut piece, expanded_iv, 1);
+            sloth256_189::cpu::decode(&mut piece, expanded_iv, 1);
         })
     });
 

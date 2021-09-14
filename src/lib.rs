@@ -3,4 +3,10 @@
 //! https://eprint.iacr.org/2015/366, extended for a proof-of-replication,
 //! and instantiated for 2**256-189 modulus.
 
+#[cfg(test)]
+mod a_piece;
+
+#[cfg(feature = "cuda")]
+pub mod cuda;
+
 pub mod cpu;
