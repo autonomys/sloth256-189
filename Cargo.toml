@@ -48,5 +48,9 @@ no-asm = []
 cuda = []
 
 [[bench]]
-name = "cpu_sloth"
+name = "cpu"
+harness = false
+
+[[bench]]
+name = "cuda"
 harness = false

@@ -2,7 +2,7 @@
 
 use thiserror::Error;
 
-/// CUDA error handler
+/// CUDA encoding errors
 #[derive(Debug, Error)]
 pub enum EncodeError {
     /// Pieces argument is invalid, must be multiple of 1024 4096-bytes pieces
