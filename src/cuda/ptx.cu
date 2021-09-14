@@ -38,7 +38,7 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     // allocating more than 8GB would be overkill, this is an upper-limit set for high-end GPUs.
     // we will tweak this down below with respect to the current available device.
 
-    unsigned long long to_be_processed_size, free_mem, total_mem;
+    size_t free_mem, total_mem;
 
     // Getting free and total memory of the device
     if (cudaMemGetInfo(&free_mem, &total_mem) != cudaSuccess) {
@@ -53,6 +53,8 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     }
 
     //printf("Picked the default amount of memory to be allocated in each round as: %llu Bytes\n", default_round_size);
+
+    unsigned long long to_be_processed_size;
 
     block_count = (default_round_size / 4096) / thread_count;  // we want to keep thread_count at 256 for CUDA reasons
     // so we are manipulating block_count instead.
