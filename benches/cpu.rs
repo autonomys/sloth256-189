@@ -43,7 +43,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_with_input("Decode", &encoding, |b, &input| {
         b.iter(|| {
             let mut piece = input;
-            sloth256_189::cpu::decode(&mut piece, expanded_iv, 1).unwrap();
+            sloth256_189::cpu::decode(&mut piece, &expanded_iv, 1).unwrap();
         })
     });
 

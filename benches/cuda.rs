@@ -20,7 +20,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_with_input("Encode-parallel", &big_piece, |b, &input| {
         b.iter(|| {
             let mut piece = input;
-            sloth256_189::cuda::cuda_encode(&mut piece, &expanded_ivs, 1);
+            sloth256_189::cuda::encode(&mut piece, &expanded_ivs, 1);
         })
     });
 

@@ -426,7 +426,7 @@ __global__ void encode_ptx(u256* piece, u256* nonce, u256* farmer_id)
 	}
 }
 
-__global__ void sloth256_189_encode_cuda(u256* piece_array, u256* expanded_iv)
+__global__ void sloth256_189_encode_cuda(u256* piece_array, u256* expanded_iv, size_t layers)
 {   // in this version, expanded_iv will be given directly
 
 	int global_idx = threadIdx.x + blockIdx.x * blockDim.x;  // global index of the thread
@@ -434,16 +434,19 @@ __global__ void sloth256_189_encode_cuda(u256* piece_array, u256* expanded_iv)
 	u256 feedback;
 	eq_x_y(feedback, expanded_iv[global_idx]);  // getting the related feedback from the expanded_iv array
 
-	for (int i = 0; i < 128; i++)  // actual sloth_encoding
-	{
-		u32* chunk_ptr = piece_array[i + global_idx * 128];  // getting the related piece from piece_array
-		// the pointer created from the right side is a regular pointer (32-bytes).
-		// we could have replaced all the below `chunk_ptr`s with `piece_array[i + global_idx * 128]`
-		// like it was in the `encode_ptx` function.
-		// this is an optimization to eliminate the re-computations of the same pointer
+    for (int x = 0; x < layers; x++)
+    {
+        for (int i = 0; i < 128; i++)  // actual sloth_encoding
+        {
+            u32* chunk_ptr = piece_array[i + global_idx * 128];  // getting the related piece from piece_array
+            // the pointer created from the right side is a regular pointer (32-bytes).
+            // we could have replaced all the below `chunk_ptr`s with `piece_array[i + global_idx * 128]`
+            // like it was in the `encode_ptx` function.
+            // this is an optimization to eliminate the re-computations of the same pointer
 
-		xor_x_y(feedback, chunk_ptr, feedback);
-		sqrt_permutation_ptx(chunk_ptr, feedback);
-		eq_x_y(feedback, chunk_ptr);
+            xor_x_y(feedback, chunk_ptr, feedback);
+            sqrt_permutation_ptx(chunk_ptr, feedback);
+            eq_x_y(feedback, chunk_ptr);
+        }
 	}
 }

@@ -25,10 +25,10 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
 
     int cudaStatus;  // for handling potential CUDA errors
 
-    int block_count, thread_count;
-    unsigned remaining_piece_size = len;  // there is `size` in the variable name, since len does not represent
+    size_t block_count, thread_count;
+    size_t remaining_piece_size = len;  // there is `size` in the variable name, since len does not represent
     // the piece count, but instead the size of the piece_array (in bytes)
-    unsigned processed_piece_size = 0;  // in bytes
+    size_t processed_piece_size = 0;  // in bytes
 
     thread_count = NUM_THREADS;  // 1 thread is responsible from 1 piece,
     // 1 thread handles 4096 bytes
@@ -61,7 +61,8 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     // (to_be_processed_size >> 12) -> (to_be_processed_size / 4096) -> piece_count
     // (piece_count / thread_count) -> how many blocks there should be
 
-    u256 *d_piece, *d_iv;  // pointers for device
+    u256 *d_piece = 0;
+    u256 *d_iv = 0;  // pointers for device
 
     while (true) {  // don't panic, this is not an endless loop :)
         to_be_processed_size = default_round_size;  // at the start of the each turn, use the default size
@@ -118,8 +119,11 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and unsigned int
         // is allocating 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
         // and we have computed the actual size. We have to divide our computations by 4 in here
-
-        sloth256_189_encode_cuda<<<block_count, thread_count>>>(d_piece, d_iv);  // calling the kernel
+        //C4267
+        //DISABLE_WARNING_PUSH
+        //DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+        sloth256_189_encode_cuda<<<(unsigned int)block_count, (unsigned int)thread_count>>>(d_piece, d_iv, layers);
+         // calling the kernel, we cast (unsigned int) to suppress warning of possible data loss
 
         // Check for any errors launching the kernel
         cudaStatus = cudaGetLastError();
