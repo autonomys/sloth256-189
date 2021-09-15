@@ -46,12 +46,12 @@ pub enum DecodeError {
 
 /// Sequentially encodes a 4096 byte piece s.t. a minimum amount of wall clock time elapses
 pub fn encode(piece: &mut [u8], iv: &[u8], layers: usize) -> Result<(), EncodeError> {
-    // if piece.len() != 4096 {
-    //     return Err(EncodeError::InvalidPiece(piece.len()));
-    // }
-    // if iv.len() != 32 {
-    //     return Err(EncodeError::InvalidPiece(iv.len()));
-    // }
+    if piece.len() != 4096 {
+        return Err(EncodeError::InvalidPiece(piece.len()));
+    }
+    if iv.len() != 32 {
+        return Err(EncodeError::InvalidIV(iv.len()));
+    }
 
     if unsafe { ffi::sloth256_189_encode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) } {
         return Err(EncodeError::DataBiggerThanPrime);
@@ -66,7 +66,7 @@ pub fn decode(piece: &mut [u8], iv: &[u8], layers: usize) -> Result<(), DecodeEr
         return Err(DecodeError::InvalidPiece(piece.len()));
     }
     if iv.len() != 32 {
-        return Err(DecodeError::InvalidPiece(iv.len()));
+        return Err(DecodeError::InvalidIV(iv.len()));
     }
 
     unsafe { ffi::sloth256_189_decode(piece.as_mut_ptr(), piece.len(), iv.as_ptr(), layers) };

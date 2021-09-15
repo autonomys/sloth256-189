@@ -13,6 +13,9 @@ pub enum EncodeError {
     /// IVs argument is invalid, must be multiple of 1024 32-bytes IVs
     #[error("IVs argument is invalid, must be multiple of 1024 32-bytes pieces, {0} bytes given")]
     InvalidIVs(usize),
+    /// Number of pieces should be the same as number of IVs
+    #[error("Number of pieces should be the same as number of IVs, {0} pieces and {1} IVs given")]
+    InvalidPiecesIVs(usize, usize),
     /// Failed to get memory info, likely means there is no compatible GPU available
     #[error("Failed to get memory info")]
     CudaMemGetInfo,
@@ -66,7 +69,13 @@ pub fn encode(pieces: &mut [u8], ivs: &[u8], layers: usize) -> Result<(), Encode
         return Err(EncodeError::InvalidPieces(pieces.len()));
     }
     if ivs.len() % (1024 * 32) != 0 {
-        return Err(EncodeError::InvalidPieces(ivs.len()));
+        return Err(EncodeError::InvalidIVs(ivs.len()));
+    }
+    if pieces.len() / 4096 != ivs.len() / 32 {
+        return Err(EncodeError::InvalidPiecesIVs(
+            pieces.len() / 4096,
+            ivs.len() / 32,
+        ));
     }
 
     let return_code = unsafe {
