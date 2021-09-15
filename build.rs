@@ -12,6 +12,11 @@ fn get_assembly_file() -> PathBuf {
 }
 
 fn main() {
+    if std::env::var("DOCS_RS").is_ok() {
+        // Skip everything when building docs on docs.rs
+        return;
+    }
+
     // Set CC environment variable to choose alternative C compiler.
     // Optimization level depends on whether or not --release is passed
     // or implied.
@@ -20,6 +25,8 @@ fn main() {
         env::set_var("CC", "clang-cl");
     }
     let mut cc = cc::Build::new();
+    cc.extra_warnings(true);
+    cc.warnings_into_errors(true);
     let mut files = vec![PathBuf::from("src/cpu/sloth256_189.c")];
 
     // account for cross-compilation
@@ -37,20 +44,18 @@ fn main() {
         .flag_if_supported("-fno-builtin-memcpy")
         .flag_if_supported("-Wno-unused-command-line-argument");
 
-    if !cfg!(debug_assertions) {
-        cc.opt_level(3);
-    }
-
     cc.files(&files).compile("libsloth256_189.a");
 
     if target_os == "windows" && !cfg!(target_env = "msvc") {
         return;
     }
-    // Detect if there is CUDA compiler and engage "cuda" feature accordingly
-    if which::which(env::var("NVCC").as_deref().unwrap_or("nvcc")).is_ok() {
+
+    if cfg!(feature = "cuda") {
         cc::Build::new()
             .cuda(true)
             .cudart("static")
+            .extra_warnings(true)
+            .warnings_into_errors(true)
             .file("src/cuda/ptx.cu")
             .compile("libsloth256_189_cuda.a");
 

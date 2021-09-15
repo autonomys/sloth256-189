@@ -55,3 +55,62 @@ jobs:
         with:
           command: test
           args: --verbose
+  cuda:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        #          - macos-10.15
+        #          - windows-2019
+        rust:
+          - stable
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: CUDA toolchain
+        run: sudo apt-get install --no-install-recommends -y nvidia-cuda-toolkit
+
+      # CUDA toolchain above doesn't like GCC newer than 8
+      - name: Select GCC 8
+        run: |
+          echo "CC=gcc-8" >> $GITHUB_ENV
+          echo "CXX=g++-8" >> $GITHUB_ENV
+
+      - name: Configure cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
+
+      - name: cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --features=cuda -- -D warnings
+
+      # We can't run CUDA tests in CI yet, so just test the build for now
+      - name: cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all --features=cuda --verbose

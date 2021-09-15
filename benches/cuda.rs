@@ -1,7 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use rand::Rng;
-use rayon::prelude::*;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 fn random_bytes<const BYTES: usize>() -> Vec<u8> {
     let mut bytes = vec![0u8; BYTES];
@@ -17,10 +16,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let big_piece = random_bytes::<4194304>(); // 1024 * 4096
     let expanded_ivs = random_bytes::<32768>(); // 1024 * 32
 
-    group.bench_with_input("Encode-parallel", &big_piece, |b, &input| {
+    group.bench_with_input("Encode-parallel", &big_piece, |b, input| {
         b.iter(|| {
-            let mut piece = input;
-            sloth256_189::cuda::cuda_encode(&mut piece, &expanded_ivs, 1);
+            let mut piece = input.clone();
+            sloth256_189::cuda::encode(&mut piece, &expanded_ivs, 1).unwrap();
         })
     });
 
