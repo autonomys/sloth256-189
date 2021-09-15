@@ -22,7 +22,7 @@ fn test_random_piece() {
     // Verify with CPU implementation as we don't have GPU-based decoding
     for encoding in encodings.chunks_exact(4096) {
         let mut decoding: [u8; 4096] = encoding.try_into().unwrap();
-        cpu::decode(&mut decoding, &expanded_iv, layers);
+        cpu::decode(&mut decoding, &expanded_iv, layers).unwrap();
 
         assert_eq!(piece, decoding);
     }

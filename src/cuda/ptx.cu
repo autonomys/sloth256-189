@@ -119,9 +119,7 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         // we are doing pointer arithmetic here. Type of `piece` and `iv` are unsigned int, and unsigned int
         // is allocating 4 bytes. So actually, iv+1 reaches to next unsigned int, which is 4 bytes later
         // and we have computed the actual size. We have to divide our computations by 4 in here
-        //C4267
-        //DISABLE_WARNING_PUSH
-        //DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
         sloth256_189_encode_cuda<<<(unsigned int)block_count, (unsigned int)thread_count>>>(d_piece, d_iv, layers);
          // calling the kernel, we cast (unsigned int) to suppress warning of possible data loss
 
