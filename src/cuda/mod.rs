@@ -45,8 +45,8 @@ pub enum EncodeError {
 // importing the functions from .c files
 mod ffi {
     extern "C" {
-        pub(super) fn is_cuda_available() -> bool;
-        pub(super) fn sloth256_189_cuda_batch_encode(
+        pub(crate) fn is_cuda_available() -> bool;
+        pub(crate) fn sloth256_189_cuda_batch_encode(
             inout: *mut u8,
             len: usize,
             iv_: *const u8,
