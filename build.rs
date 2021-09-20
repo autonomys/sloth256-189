@@ -44,7 +44,7 @@ fn main() {
         .flag_if_supported("-fno-builtin-memcpy")
         .flag_if_supported("-Wno-unused-command-line-argument");
 
-    cc.files(&files).compile("libsloth256_189.a");
+    cc.files(&files).compile("sloth256_189");
 
     if target_os == "windows" && !cfg!(target_env = "msvc") {
         return;
@@ -57,8 +57,6 @@ fn main() {
             .extra_warnings(true)
             .warnings_into_errors(true)
             .file("src/cuda/ptx.cu")
-            .compile("libsloth256_189_cuda.a");
-
-        println!("cargo:rustc-cfg=feature=\"cuda\"");
+            .compile("sloth256_189_cuda");
     }
 }

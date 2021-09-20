@@ -1,3 +1,6 @@
+# 0.2.2
+* Fix FFI integration with C/CUDA libraries on Windows
+
 # 0.2.1
 * ffi functions were declared as `pub(super)` but causing `unresolved external symbol` error when this crate was included as a dependency. 
 Now these functions are declared as `pub(crate)` to fix this issue.

@@ -4,13 +4,13 @@ use thiserror::Error;
 
 mod ffi {
     extern "C" {
-        pub(crate) fn sloth256_189_encode(
+        pub(super) fn sloth256_189_encode(
             inout: *mut u8,
             len: usize,
             iv_: *const u8,
             layers: usize,
         ) -> bool;
-        pub(crate) fn sloth256_189_decode(
+        pub(super) fn sloth256_189_decode(
             inout: *mut u8,
             len: usize,
             iv_: *const u8,
