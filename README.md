@@ -10,10 +10,24 @@
 This is an adaptation of [SLOTH](https://eprint.iacr.org/2015/366) (slow-timed hash function) into a time-asymmetric
 permutation using a standard CBC block cipher.
 
-Implementation contains 3 flavors:
+This library consists of 2 major implementations:
+- CPU
+- CUDA
+
+---
+
+CPU Implementation contains 3 flavors:
 * optimized assembly-assisted implementation for x86-64 processors with ADX ISA extension (Linux, macOS and Windows)
 * any 64-bt platform with support for `__int128` C type (modern GCC/Clang, but not MSVC)
 * fallback for other platforms
+
+For more details, `README.md` under `src/cpu` can be referred.
+
+---
+
+CUDA implementation is heavily using low-level PTX code to achieve the maximum performance.
+
+Details of the CUDA implementation can be found in `README.md` under `src/cuda`.
 
 ### License
 

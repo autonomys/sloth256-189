@@ -1,75 +1,11 @@
-# sloth256_189 (Documentation) for CUDA
+# sloth256_189.c Documentation
 
-This is the documentation of both `sloth256_189.c` and its CUDA caller `sloth256_189.cu`.
+This is the documentation of `sloth256_189.c`
 - `sloth256_189.c`: general purpose low-level c code. A very efficient and optimized implementation of sloth encoding/decoding.
-- `sloth256_189.cu`: a CUDA file which makes it possible to run the`sloth256_189.c` file in Nvidia GPUs, using the GPUs rich parallelization opportunities.
-
-*Important Note:*
-- Documentation of `sloth256_189.cu` is done as inline comments (this file is not really complicated and fairly short).
-- The file `sloth256_189.c` is heavily commented under `Documentation.md`. The reason for these comments are not made inline is: it is a very low-level code and explaining the concepts are taking too much space, with constantly jumping in the file from beginning to end, and rendering the code file a bit chaotic in the end.
-
----
-
-## How To Build
-
-### Linux, Windows (maybe possible with eGPU setting on MacOS as well)
-0. Download this repo.
-1. Open your favorite terminal.
-2. `cd` into this directory (this repo/CUDA/c-code).
-3. Run this command for compiling the project: `nvcc -DSTANDALONE_DEMO -gencode arch=compute_XX,code=sm_XX -use_fast_math -O2 sloth256_189.cu -o yeahBOI`.
-4. Run this command for running the executable: `./yeahBOI` (for windows, this is `yeahBOI`), or you can double click on the executable as well if you hate the terminal.
-
-Explanation of the above command:
-- `nvcc` is for the compiler.
-- since this file was meant to called by Rust, its default configuration is not allowing us to run it as a standalone program. However, there is a configuration for that :) We just need to give the compiler the option `-DSTANDALONE_DEMO`.
-- `-gencode arch=compute_XX,code=sm_XX`, this is an optimization, and it is suggested. You have to replace `XX`'s with your compute capability. For example: if your compute capability is 8.6, you should replace `XX`'s with `86`.
-- `-use_fast_math` another suggested optional optimization.
-- `-O2` yet another optional optimization.
-- `sloth256_189.cu` the actual file we are compiling.
-- `-o yeahBOI` is optional but beneficial to one's sanity.
-
-### Windows with Visual Studio
-0. Download the repo.
-1. Create an CUDA project in Visual Studio (tested with version 2017 and 2019).
-2. include the `sloth256_189.cu` in your project, but DO NOT INCLUDE `sloth256_189.c` in your project (it creates problem for Visual Studio). These two files just need to be in the same directory in your file system.
-3. Run the program :)
-
----
-
-## Documentation of the Files
-
-### sloth256_189.cu
-
-Our main file is `sloth256_189.cu`.
-
-1. `minGridSize` and `blockSize` can be entered as arguments from CLI. `blockSize` denotes how many threads we have for each block, `minGridSize` denotes how many blocks we will have for a grid. We can also hard-code them, look at line 93-96 for this, they are commented out at the moment. We can uncomment these, in this case, comment out the lines between 107-122 as suggested. Or we can simply modify the values in line 119 and 120:
-
-    ```cpp
-    		} else {
-            blockSize = 32;
-            minGridSize = 1;
-        }
-    ```
-
-2. If `nsight` is going to be used for benchmarking and analysis, some parts of this code will create errors. Comment out the lines below:
-    1. 81-88
-    2. 101-102
-    3. 131-139
-    4. Lastly, uncomment lines 143-146
-
-
----
-
-***Pipeline:***
-
-int main → demo (kernel) → sloth256_189_encode
-
-For `sloth256_189_encode`, we have to jump to the `.c` code
 
 ---
 
 ### sloth256_189.c
-
 
 - ***sloth256_189_encode:***
 
@@ -366,5 +302,3 @@ For `sloth256_189_encode`, we have to jump to the `.c` code
         ```c
         static void cneg_mod_256_189(vec256 out, const vec256 a, bool_t cbit)
         ```
-
-        Currently, I did not understand much of the code itself, may try to understand it later.

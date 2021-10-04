@@ -1,3 +1,12 @@
+<div align="center">
+  <h1><code>sloth256-189 - CPU</code></h1>
+  <strong>Encoder/decoder for the <a href="https://subspace.network/">Subspace Network Blockchain</a> based on the <a href="https://eprint.iacr.org/2015/366">SLOTH permutation</a></strong>
+</div>
+
+Below is the summary of the CPU implementation of sloth256-189. For detailed comments and explanations, please refer to `Documentation.md`
+
+---
+
 `sqrt_mod_256_189/square_mod_256_189` comes in three "flavours":
 ```
 #if detected(__ADX__)
