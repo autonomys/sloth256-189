@@ -19,5 +19,10 @@ on the device, pieces will be split into smaller batches), to achieve the best p
 
 ---
 
+For Supranational's Performance Report on CUDA implementation of Sloth256-189, please refer to 
+`Supranational-GPU-Performance-Report.pdf`
+
+---
+
 CUDA/PTX code is following the same base-algorithm with cpu. Please refer to `README.md` and `Documentation.md` in 
 `src/cpu` for more in-depth explanations of the base-algorithm.
