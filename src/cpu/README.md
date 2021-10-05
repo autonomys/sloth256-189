@@ -3,7 +3,7 @@
   <strong>Encoder/decoder for the <a href="https://subspace.network/">Subspace Network Blockchain</a> based on the <a href="https://eprint.iacr.org/2015/366">SLOTH permutation</a></strong>
 </div>
 
-Below is the summary of the CPU implementation of sloth256-189. For detailed comments and explanations, please refer to `Documentation.md`
+Below is the summary of the CPU implementation of sloth256-189. For detailed comments and explanations, please refer to [Documentation.md](Documentation.md)
 
 ---
 

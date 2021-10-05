@@ -21,13 +21,14 @@ CPU Implementation contains 3 flavors:
 * any 64-bt platform with support for `__int128` C type (modern GCC/Clang, but not MSVC)
 * fallback for other platforms
 
-For more details, `README.md` under `src/cpu` can be referred.
+For more details, [README.md](src/cpu/README.md) under `src/cpu` can be referred.
 
 ---
 
 CUDA implementation is heavily using low-level PTX code to achieve the maximum performance.
 
-Details of the CUDA implementation can be found in `README.md` under `src/cuda`.
+Details of the CUDA implementation can be found in 
+[README.md](src/cuda/README.md) under `src/cuda`.
 
 ### License
 
