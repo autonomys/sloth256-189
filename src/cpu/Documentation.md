@@ -11,20 +11,12 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
 
     *High level summary:* this function is performing the encoding operation given in SLOTH.
 
-    [sloth256_189_encode](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L922) declaration can be found at line 922.
-
-    declaration:
-
     ```c
     int sloth256_189_encode(unsigned char *inout, size_t len,
                             const unsigned char iv_[32], size_t layers)
     ```
 
-    Now, let's take a look what is does on the high-level. From line 922 till 950, initializations are done for storing the 256-bit numbers in limbs. High-level algorithm wise, this part is not important.
-
-    The actual encoding is happening between the lines 952-956 (or 961-965 depending on architecture). We will inspect 952-956 in this documentation.
-
-    Lines 952-956:
+    Now, let's take a look what is does on the high-level. 
 
     ```cpp
     while (layers--) {
@@ -35,7 +27,7 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
         }
     ```
 
-    For pseudo-code correspondant, here is the more readable version:
+    For pseudo-code correspondent, here is the more readable version:
 
     ```cpp
     while (layers--) {  // for each layer
@@ -55,10 +47,6 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
   - ***xor_n_check_mod_256_189:***
 
       *High-level summary:* this function is applying xor operation to its parameters (a and b), then writes the output to its first parameter (out).
-
-      [xor_n_check_mod_256_189](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L243) declaration can be found at line 243.
-
-      declaration:
 
       ```c
       static bool_t xor_n_check_mod_256_189(vec256 out,
@@ -100,10 +88,6 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
   - ***sqrtx_mod_256_189:***
 
       *High level summary:* this function is taking the square root of its parameter (inp), and writes the result to its first parameter (out)
-
-      [sqrtx_mod_256_189](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L183) declaration can be found at line 183.
-
-      declaration:
 
       ```c
       static bool_t sqrtx_mod_256_189(vec256 out, const vec256 inp)
@@ -170,12 +154,6 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
 
           *High level summary:* this function takes the square of its last parameter (b), and multiplies this result with itself `count` times (like taking power of it), and finally multiplies this result with its second parameter (a), in modulo p, and writes the final result to its first parameter (out).
 
-          [sqr_n_mul](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L188) is defined in line 188, and is an alias to another function: `sqrx_n_mul_mod_256_189`.
-
-          [sqrx_n_mul_mod_256_189](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L138) is defined in line 138.
-
-            declaration:
-
             ```c
             void sqrx_n_mul_mod_256_189(vec256 out, const vec256 a,
                                         size_t count, const vec256 b);
@@ -185,10 +163,6 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
 
           *High level summary:* this function reduces its last parameter (a), in modulo prime, and writes the result back into its first parameter (out).
 
-          [redc_mod_256_189](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L142) declaration can be found at line 142.
-
-          declaration:
-
           ```c
           void redc_mod_256_189(vec256 out, const vec256 a);
           ```
@@ -197,21 +171,13 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
 
           *High level summary:* this function multiplies its last two parameters (a, b) in modulo p, and writes the result back to its first parameter (out).
 
-          [mulx_mod_256_189](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L140) declaration can be found at line 140.
-
-          declaration:
-
           ```c
           void mulx_mod_256_189(vec256 out, const vec256 a, const vec256 b);
           ```
 
       - ***vec_is_equal:***
 
-          *High level summary:* this function checks whether two vectors are equal. The last parameter defines till which point this check will be applied (maybe these two vectors are not equal, in this case, only the first (amount will be determined by the last parameter) limbs will be compared.
-
-          [vec_is_equal](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L120) declaration can be found at line 120.
-
-          declaration:
+          *High level summary:* this function checks whether two vectors are equal. The last parameter defines till which point this check will be applied. Maybe these two vectors are not equal, in this case, only the first (amount will be determined by the last parameter) limbs will be compared.
 
           ```c
           static inline bool_t vec_is_equal(const void *a, const void *b,
@@ -249,10 +215,6 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
           - ***is_zero:***
 
               *High level summary:* this function checks whether the given limb is zero or not
-
-              [is_zero](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L117) declaration can be found at line 117.
-
-              declaration:
 
               ```c
               static inline bool_t is_zero(limb_t l)
@@ -296,10 +258,6 @@ This is the documentation of [sloth256_189.c](sloth256_189.c)
       - ***cneg_mod_256_189:***
 
           *High level summary:* this function probably negates its second parameter (a), and writes the result into its first parameter (out). Do not know yet what the third parameter is doing.
-
-          [cneg_mod_256_189](https://github.com/subspace/sloth256-189/blob/master/src/cpu/sloth256_189.c#L143) declaration can be found at line 143 (but definition is at line 222).
-
-          declaration:
 
           ```c
           static void cneg_mod_256_189(vec256 out, const vec256 a, bool_t cbit)
