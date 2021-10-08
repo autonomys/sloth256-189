@@ -383,10 +383,6 @@ __device__ __forceinline__ void sqrt_permutation_ptx(u256 out, u256 x)
 
 	addition_chain_reduce_256(out, x);  // out = pow(x, (prime+1)/4, prime)
 
-	if (check_odd(out)) {  // if the number is odd, we have to negate the square-root
-		prime_minus_x(out);
-	}
-
 	// check if square of x is the same with input (this check is necessary,
 	// since there are some numbers that do not have square roots,
 	// but their negations do have, read the SLOTH paper for more details).
@@ -401,13 +397,10 @@ __device__ __forceinline__ void sqrt_permutation_ptx(u256 out, u256 x)
 		x_minus_prime(check_candidate);  // if so, apply the reduction. One check is enough, lazy-reduction guarantees that
 	}
 
+    if (check_eq_x_y(check_candidate, x) ^ check_even(out)) {  // means we have found the correct square root
+            prime_minus_x(out);  // negate the square-root accordingly with it being even-odd.
+    }
 
-	if (check_eq_x_y(check_candidate, x)) {}  // means we have found the correct square root
-	else {
-		if (check_even(out)) {
-			prime_minus_x(out);  // negate the square-root accordingly with it being even-odd.
-		}
-	}
 }
 
 __global__ void encode_ptx(u256* piece, u256* nonce, u256* farmer_id)
