@@ -9,3 +9,8 @@
 pub mod cpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;
+#[cfg(feature = "opencl")]
+pub mod opencl;
+
+#[allow(unused_extern_crates)]
+extern crate openmp_sys;

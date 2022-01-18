@@ -59,4 +59,28 @@ fn main() {
             .file("src/cuda/ptx.cu")
             .compile("sloth256_189_cuda");
     }
+
+    if cfg!(feature = "opencl") {
+        env::var("DEP_OPENMP_FLAG").unwrap().split(" ").for_each(|f| { cc.flag(f); });
+
+        println!("cargo:rustc-link-lib=OpenCL");
+        println!("cargo:rustc-link-search=/opt/amdgpu-pro/lib64/");
+        println!("cargo:rustc-link-search=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.4/lib/x64");
+        println!("cargo:rustc-link-search=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.5/lib/x64");
+
+        cc::Build::new()
+            .cpp(true)
+            .flag_if_supported("-pthread")
+            .flag_if_supported("-fopenmp")
+            .flag_if_supported("/openmp")
+            .flag_if_supported("-std:c++17")
+            .flag_if_supported("/EHsc")
+            .flag_if_supported("-std=c++17")
+            .include("/opt/amdgpu-pro/include/")
+            .include("/opt/intel/inteloneapi/compiler/latest/linux/include/sycl/")
+            .include("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.4/include")
+            .include("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.5/include")
+            .file("src/opencl/opencl.cpp")
+            .compile("sloth256_189_opencl");
+    }
 }

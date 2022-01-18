@@ -158,14 +158,14 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         processed_piece_size += to_be_processed_size;
         remaining_piece_size -= to_be_processed_size;
 
+        cudaFree(d_piece);
+        cudaFree(d_iv);
+
         if (remaining_piece_size == 0) {
             break;
         }
     }
-
-    cudaFree(d_piece);
-    cudaFree(d_iv);
-
+    
     // cudaStatus is 0 if there is no error and other numbers for specific errors that we inspected for
     return cudaStatus;
 }
