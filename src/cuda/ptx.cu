@@ -85,6 +85,12 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
             // have any remainder
             block_count = (remaining_piece_size / 4096) / thread_count;
 
+            // however, we might need less than 256 threads
+            if (block_count == 0) {
+                block_count = 1;
+                thread_count = remaining_piece_size / 4096;
+            }
+
             to_be_processed_size = block_count * thread_count * 4096;
         }
 
