@@ -58,26 +58,48 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         default_round_size /= 2;
     }
 
+    // Unfortunately, cudaMalloc does not return an error when size is 0
+    if (default_round_size == 0) {
+        return 2;
+    }
     //printf("Picked the default amount of memory to be allocated in each round as: %llu Bytes\n", default_round_size);
 
-    unsigned long long to_be_processed_size;
+    // pointers for device
+    u256 *d_piece = 0;
+    u256 *d_iv = 0;
 
     // We want to keep thread_count at 256 for CUDA reasons so we are manipulating block_count instead.
     // (to_be_processed_size >> 12) -> (to_be_processed_size / 4096) -> piece_count
     // (piece_count / thread_count) -> how many blocks there should be
     block_count = (default_round_size / 4096) / thread_count;
 
-    // pointers for device
-    u256 *d_piece = 0;
-    u256 *d_iv = 0;
+    //printf("Trying to allocate %llu Bytes\n", default_round_size);
+    // This might fail, due to User may have opened a program that heavily utilizes the GPU
+    cudaStatus = cudaMalloc(&d_piece, default_round_size);
+
+    // If fails, reduce the requirement
+    while ((cudaStatus != cudaSuccess) != 0) {
+        cudaStatus = cudaMalloc(&d_piece, default_round_size);
+        default_round_size /= 2;
+        block_count /= 2;
+    }
+
+    // IV occupies 32 bytes, piece occupies 4096 bytes.
+    cudaStatus = cudaMalloc(&d_iv, (default_round_size / 4096 * 32 ));
+
+    if (cudaStatus != cudaSuccess) {
+        return 3;
+    }
+
+    unsigned long long to_be_processed_size;
 
     while (true) {
-        // at the start of the each turn, use the default size
+
         to_be_processed_size = default_round_size;
 
         // It could be that, remaining_piece_size could be less than the default size so we will adjust our worker count
         // accordingly
-        if (remaining_piece_size < (to_be_processed_size)) {
+        if (remaining_piece_size < default_round_size) {
 
             // Since each thread will handle 4096 bytes, the below equation should make sense.
             // Important note in here: the below division should not produce a remainder `thread_count` will be 256.
@@ -92,31 +114,6 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
             }
 
             to_be_processed_size = block_count * thread_count * 4096;
-        }
-
-        //printf("Trying to allocate %llu Bytes\n", to_be_processed_size);
-        // This might fail, due to User may have opened a program that heavily utilizes the GPU
-        cudaStatus = cudaMalloc(&d_piece, to_be_processed_size);
-
-        // If fails, reduce the requirement
-        while ((cudaStatus != cudaSuccess) && to_be_processed_size != 0) {
-            cudaStatus = cudaMalloc(&d_piece, to_be_processed_size);
-            to_be_processed_size /= 2;
-            block_count /= 2;
-        }
-
-        // Unfortunately, cudaMalloc does not return an error when size is 0
-        if (to_be_processed_size == 0) {
-            cudaStatus = 2;
-            break;
-        }
-
-        // IV occupies 32 bytes, piece occupies 4096 bytes.
-        cudaStatus = cudaMalloc(&d_iv, (to_be_processed_size / 4096 * 32 ));
-
-        if (cudaStatus != cudaSuccess) {
-            cudaStatus = 3;
-            break;
         }
 
         // Computing the next range of pieces to be processed, and copying them into GPU memory
