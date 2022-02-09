@@ -14,17 +14,10 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.sample_size(100);
     group.measurement_time(Duration::from_secs(30));
 
-    const NUM_PIECES: usize = 1024 * 1024;
+    const NUM_PIECES: usize = 1024 * 256;
     let size = NUM_PIECES * 4096 / 1073741824;
     let big_piece = random_bytes::<{ 4096 * NUM_PIECES }>();
     let expanded_ivs = random_bytes::<{ 32 * NUM_PIECES }>();
-
-    /*group.bench_with_input("Encode-parallel", &big_piece, |b, input| {
-        b.iter(|| {
-            let mut piece = input.clone();
-            sloth256_189::cuda::encode(&mut piece, &expanded_ivs, 1).unwrap();
-        })
-    });*/
 
     group.bench_function(
         format!(

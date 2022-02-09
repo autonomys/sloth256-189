@@ -18,7 +18,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.sample_size(100);
     group.measurement_time(Duration::from_secs(30));
 
-    const NUM_PIECES: usize = 1024 * 1024; // * 2 + 1024 * 56;
+    const NUM_PIECES: usize = 1024 * 256;
     const MAX_LAYERS: usize = 1;
     let size: f64 = NUM_PIECES as f64 * 4096 as f64 / 1073741824 as f64;
     let expanded_ivs = random_bytes::<{ 32 * NUM_PIECES }>();
@@ -56,15 +56,17 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 layers
             ),
             |b| {
-                b.iter_custom(|_| {
+                b.iter_custom(|iters| {
                     let mut piece =
                         sloth256_189::opencl::pinned_memory_alloc(instances, 4096 * NUM_PIECES)
                             .unwrap();
                     random_bytes_inplace::<{ 4096 * NUM_PIECES }>(&mut piece);
 
                     let start = Instant::now();
-                    sloth256_189::opencl::encode(&mut piece, &expanded_ivs, layers, instances)
-                        .unwrap();
+                    for _ in 0..iters {
+                        sloth256_189::opencl::encode(&mut piece, &expanded_ivs, layers, instances)
+                            .unwrap();
+                    }
                     let elapsed = start.elapsed();
 
                     sloth256_189::opencl::pinned_memory_free(instances).unwrap();

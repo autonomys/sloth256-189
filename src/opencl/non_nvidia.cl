@@ -9,43 +9,18 @@ typedef uint limb_t;
 #define LIMB_T_BITS (8*sizeof(limb_t))
 
 typedef limb_t vec256[256 / LIMB_T_BITS];
-//typedef limb_t bool_t;
 
 static inline void private_limbs_from_global(limb_t* ret, const __global limb_t* in, uchar n)
 {
     limb_t limb = 0;
 
     while (n--) {
-        //limb <<= 8;
-        //limb |= in[n];
-        /*
-         * 'if (n % sizeof(limb_t) == 0)' is omitted because it's cheaper
-         * to perform redundant stores than to pay penalty for
-         * mispredicted branch. Besides, some compilers unroll the
-         * loop and remove redundant stores to 'restict'-ed storage...
-         */
-        //ret[n / sizeof(limb_t)] = limb;
         ret[n] = in[n];
     }
 }
 
 static inline void private_limbs_to_global(__global limb_t* out, const limb_t* in, uchar n)
 {
-    /*limb_t limb;
-    uint i, j, r;
-
-    r = n % sizeof(limb_t);
-    n /= sizeof(limb_t);
-
-    for (i = 0; i < n; i++) {
-        for (limb = in[i], j = 0; j < sizeof(limb_t); j++, limb >>= 8)
-            *out++ = (unsigned char)limb;
-    }*/
-    /*if (r) {
-        for (limb = in[i], j = 0; j < r; j++, limb >>= 8)
-            *out++ = (unsigned char)limb;
-    }*/
-
     while (n--) {
 
         out[n] = in[n];
@@ -464,7 +439,8 @@ static void sqr_n_mul_fe26(fe26 out, fe26 a, uchar count, const fe26 b)
     mul_mod_256_189(out, a, b);
 }
 
-__constant uchar loop_args[] = { 0x3, 0x3, 0x6, 0x3, 0xe, 0x3, 0x1e, 0x3, 0x3e, 0x7c, 0xf8, 0x5, 0x9 };
+__constant uchar loop_args[] = { 0x3, 0x3, 0x6, 0x3, 0xe, 0x3, 0x1e, 
+                                 0x3, 0x3e, 0x7c, 0xf8, 0x5, 0x9 };
 
 static bool sqrt_mod_256_189(vec256 out, const vec256 inp)
 {
@@ -481,7 +457,6 @@ static bool sqrt_mod_256_189(vec256 out, const vec256 inp)
         sqr_n_mul_fe26(x, x, loop_args[i] >> 1, var);
     }
 
-    //mul_mod_256_189(z, x, x);
     sqr_mod_256_189(z, x);
     from_fe26(ret, x);
     from_fe26(sqr, z);
@@ -491,7 +466,8 @@ static bool sqrt_mod_256_189(vec256 out, const vec256 inp)
     return neg;
 }
 
-int sloth256_189_encode(__global limb_t* inout, u32 len, const __global limb_t iv[32], u32 layers)
+int sloth256_189_encode(__global limb_t* inout, u32 len, 
+                        const __global limb_t iv[32], u32 layers)
 {
     bool ret = 0;
     u32 i = 0;

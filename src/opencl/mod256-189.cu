@@ -3,22 +3,39 @@ typedef ulong limb_t;
 typedef limb_t vec256[256/(8*sizeof(limb_t))];
 
 struct vec256_t {
+    // vec256.l to treat it as 4 64-bit limbed structure
+    // vec256.v to treat it as 8 32-bit limbed structure
+
+    // it uses the same memory space but it can be
+    // indexed in 2 different ways
     union { vec256 l;
             uint v[sizeof(vec256)/sizeof(uint)];
     };
     
 };
 
-//extern __shared__ uint32_t scratchpad[];    // dynamically allocated
-
-//asm volatile(".extern .shared .b32 scratchpad[];\t\n");
-
 struct vec256_shared_t {
     
+    // first limb of 8 limbs is stored in a register (i.e v0)
     uint v0;
+    // remaining 7 limbs are stored in shared memory
+    // v_off marks the start of the shared memory region
+    // where this variable's limbs are stored
     uint v_off;
 };
 
+// Pseudocode of the function below
+
+// r = a
+// for (int i = 0; i < n; i++) {
+//     r = r * r;
+// }
+// if (val == 0)
+//     r = r * a;
+// else if (val == 1)
+//     r = r * b;
+//
+// return r;
 inline struct vec256_t sqr_n_mul_mod_256_189_val_or_self(const struct vec256_t a,
                                                          unsigned int n,
                                                          int val,
@@ -507,7 +524,7 @@ inline struct vec256_t vec256_load_global(const limb_t* aptr) {
         "   st.b32      [%0+4*7], a7;\t\n"
         "\t\n"
         "}"
-        :: "l" (ret.v), "l" (aptr) : "memory"
+        :: "l" (ret.v), "l" (aptr)
         );
         
     return ret;
@@ -567,7 +584,7 @@ inline void vec256_store_global(struct vec256_t inp, const limb_t* rptr) {
         "   st.global.cs.v4.b32 [rptr2], {a4, a5, a6, a7};\t\n"
         "\t\n"
         "}"
-        :: "l" (inp.v), "l" (rptr) : "memory"
+        :: "l" (inp.v), "l" (rptr)
         );  
 }
 
@@ -616,7 +633,7 @@ inline struct vec256_t redc_mod_256_189_val(const struct vec256_t inp) {
         "@p mov.b32 a7, b7;\t\n"
         "   st.u32  [%0+4*7], a7;\t\n"
         "}"
-        :: "l" (ret.v), "l" (inp.v)// : "memory"
+        :: "l" (ret.v), "l" (inp.v)
         );
 
     return ret;
@@ -879,13 +896,15 @@ inline struct vec256_t sqr_n_cneg_mod_256_189_val(const struct vec256_t sqrt,
         "   st.u32  [%0+4*6], in6;\t\n"
         "   st.u32  [%0+4*7], in7;\t\n"
         "}"
-        :: "l" (ret.v), "l" (sqrt.v), "l" (&inp.v0), "r" (scratchpad) : "memory"
+        :: "l" (ret.v), "l" (sqrt.v), "l" (&inp.v0), "r" (scratchpad)
         );
         
     return ret;
 }
 
-inline struct vec256_t xor_256_val(const struct vec256_t a, const struct vec256_shared_t b, __local unsigned int scratchpad[]) {
+inline struct vec256_t xor_256_val(const struct vec256_t a, 
+                                   const struct vec256_shared_t b,
+                                   __local unsigned int scratchpad[]) {
 
     struct vec256_t ret;
 
@@ -930,7 +949,7 @@ inline struct vec256_t xor_256_val(const struct vec256_t a, const struct vec256_
         "   xor.b32 a7, a7, b7;\t\n"
         "   st.u32  [%0+4*7], a7;\t\n"
         "}"
-        :: "l" (ret.v), "l" (a.v), "r" (b.v0), "r" (b.v_off), "r" (scratchpad) : "memory"
+        :: "l" (ret.v), "l" (a.v), "r" (b.v0), "r" (b.v_off), "r" (scratchpad)
         );
 
     return ret;
@@ -963,7 +982,7 @@ inline bool check_mod_256_189_val(const struct vec256_t a) {
         "   addc.u32    ret, 0, 0;\t\n"
         "   st.u32  [%0], ret;\t\n"
         "}"
-        :: "l" (&ret), "l" (a.v)// : "memory"
+        :: "l" (&ret), "l" (a.v)
         );
 
     return ret;

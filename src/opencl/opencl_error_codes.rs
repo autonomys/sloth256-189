@@ -68,11 +68,11 @@ pub fn get_opencl_error_string(error_code: i32) -> String {
         2028 => "SLOTH_NO_OPENCL_COMPATIBLE_AMD_GPUS".to_string(),
         2029 => "SLOTH_NO_OPENCL_COMPATIBLE_INTEL_GPUS".to_string(),
 
-        // Should never happen since the caller Rust 
+        // Should never happen since the caller Rust
         // function makes sure that there are more than 1024 pieces
         2031 => "SLOTH_PIECES_NOT_MULTIPLE_OF_1024".to_string(),
 
-        // Pinned memory allocation fails if 
+        // Pinned memory allocation fails if
         // there's no OpenCL compatible Nvidia GPUs
         2035 => "SLOTH_PINNED_MEMORY_ALLOCATION_FAILURE".to_string(),
 
