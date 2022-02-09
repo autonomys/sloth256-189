@@ -65,8 +65,14 @@ fn main() {
 
         println!("cargo:rustc-link-lib=OpenCL");
         println!("cargo:rustc-link-search=/opt/amdgpu-pro/lib64/");
-        println!("cargo:rustc-link-search=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.4/lib/x64");
-        println!("cargo:rustc-link-search=C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.5/lib/x64");
+
+        let mut cuda_include: String = "".to_string();
+        if env::var("CUDA_PATH").is_ok() {
+            let cuda_path = env::var("CUDA_PATH").unwrap();
+            println!("cargo:rustc-link-search={}/lib/x64", cuda_path);
+
+            cuda_include = cuda_path + &"/include".to_string();
+        }
 
         cc::Build::new()
             .cpp(true)
@@ -78,8 +84,7 @@ fn main() {
             .flag_if_supported("-std=c++17")
             .include("/opt/amdgpu-pro/include/")
             .include("/opt/intel/inteloneapi/compiler/latest/linux/include/sycl/")
-            .include("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.4/include")
-            .include("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.5/include")
+            .include(cuda_include)
             .file("src/opencl/opencl.cpp")
             .compile("sloth256_189_opencl");
     }

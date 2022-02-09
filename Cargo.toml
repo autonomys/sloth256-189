@@ -39,8 +39,7 @@ openmp-sys = "1.2.1"
 criterion = {version = "0.3.5", features = ["html_reports"]}
 rand = "0.8.4"
 rayon = "1.5.1"
-serial_test = "*"
-openmp-sys = "1.2"
+openmp-sys = "1.2.1"
 
 [build-dependencies]
 cc = "1.0.70"
