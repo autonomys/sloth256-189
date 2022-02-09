@@ -63,7 +63,7 @@ fn main() {
     if cfg!(feature = "opencl") {
         env::var("DEP_OPENMP_FLAG")
             .unwrap()
-            .split(" ")
+            .split(' ')
             .for_each(|f| {
                 cc.flag(f);
             });
