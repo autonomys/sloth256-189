@@ -39,7 +39,7 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     // 8GB as Bytes
     // allocating more than 8GB would be overkill, this is an upper-limit set for high-end GPUs.
     // we will tweak this down below with respect to the current available device.
-    unsigned long long default_round_size = len;
+    unsigned long long round_size = len;
 
     size_t free_mem, total_mem;
 
@@ -52,39 +52,39 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
     //printf("Total memory on this device is: %llu Bytes\n", total_mem);  // we are not using this, but it is fancy :)
 
     // if device does not have enough free memory
-    while (default_round_size > free_mem) {
+    while (round_size > free_mem) {
         // make the memory requirement smaller
-        default_round_size /= 2;
+        round_size /= 2;
     }
 
     // Unfortunately, cudaMalloc does not return an error when size is 0
-    if (default_round_size == 0) {
+    if (round_size == 0) {
         return 2;
     }
-    //printf("Picked the default amount of memory to be allocated in each round as: %llu Bytes\n", default_round_size);
+    //printf("Picked the default amount of memory to be allocated in each round as: %llu Bytes\n", round_size);
 
     // pointers for device
     u256 *d_piece = 0;
     u256 *d_iv = 0;
 
     // We want to keep thread_count at 256 for CUDA reasons so we are manipulating block_count instead.
-    // (default_round_size >> 12) -> (default_round_size / 4096) -> piece_count
+    // (round_size >> 12) -> (round_size / 4096) -> piece_count
     // (piece_count / thread_count) -> how many blocks there should be
-    block_count = (default_round_size / 4096) / thread_count;
+    block_count = (round_size / 4096) / thread_count;
 
-    //printf("Trying to allocate %llu Bytes\n", default_round_size);
+    //printf("Trying to allocate %llu Bytes\n", round_size);
     // This might fail, due to User may have opened a program that heavily utilizes the GPU
-    cudaStatus = cudaMalloc(&d_piece, default_round_size);
+    cudaStatus = cudaMalloc(&d_piece, round_size);
 
     // If fails, reduce the requirement
-    while ((cudaStatus != cudaSuccess) != 0) {
-        cudaStatus = cudaMalloc(&d_piece, default_round_size);
-        default_round_size /= 2;
+    while (cudaStatus != cudaSuccess) {
+        cudaStatus = cudaMalloc(&d_piece, round_size);
+        round_size /= 2;
         block_count /= 2;
     }
 
     // IV occupies 32 bytes, piece occupies 4096 bytes.
-    cudaStatus = cudaMalloc(&d_iv, (default_round_size / 4096 * 32 ));
+    cudaStatus = cudaMalloc(&d_iv, (round_size / 4096 * 32 ));
 
     if (cudaStatus != cudaSuccess) {
         return 3;
@@ -97,13 +97,13 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         // are unsigned int, and unsigned int is allocating 4 bytes. So actually, iv+1 reaches to next unsigned int,
         // which is 4 bytes later and we have computed the actual size. We have to divide our computations by 4 in here.
         cudaStatus = cudaMemcpy(d_piece, (piece + (processed_piece_size / 4)),
-                                default_round_size, cudaMemcpyHostToDevice);
+                                round_size, cudaMemcpyHostToDevice);
         if (cudaStatus != cudaSuccess) {
             cudaStatus = 4;
             break;
         }
         cudaStatus = cudaMemcpy(d_iv, (iv + (processed_piece_size / 512)),
-                                (default_round_size / 128), cudaMemcpyHostToDevice);
+                                (round_size / 128), cudaMemcpyHostToDevice);
         if (cudaStatus != cudaSuccess) {
             cudaStatus = 5;
             break;
@@ -126,15 +126,15 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         }
 
         cudaStatus = cudaMemcpy((piece + (processed_piece_size / 4)), d_piece,
-                                default_round_size, cudaMemcpyDeviceToHost);
+                                round_size, cudaMemcpyDeviceToHost);
         // Copy back the result to host, again extra division by 4 because of pointer arithmetic
         if (cudaStatus != cudaSuccess) {
             cudaStatus = 8;
             break;
         }
 
-        processed_piece_size += default_round_size;
-        remaining_piece_size -= default_round_size;
+        processed_piece_size += round_size;
+        remaining_piece_size -= round_size;
 
         if (remaining_piece_size == 0) {
             break;
