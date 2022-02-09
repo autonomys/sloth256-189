@@ -1,9 +1,9 @@
 use crate::test_vectors::{CORRECT_ENCODING, EXPANDED_IV, LAYERS, PIECE};
 use crate::utils;
+use rand::Rng;
+use serial_test::serial;
 use sloth256_189::{cpu, opencl};
 use std::convert::TryInto;
-use serial_test::serial;
-use rand::Rng;
 
 fn random_bytes_vec<const BYTES: usize>() -> Vec<u8> {
     let mut bytes = vec![0u8; BYTES];
@@ -72,8 +72,8 @@ fn test_big_random_piece() {
     //let layers = 4096 / 32;
     let layers = 2;
 
-    let correct_encodings = random_bytes_vec::<{4096 * NUM_PIECES}>();
-    let ivs = random_bytes_vec::<{32 * NUM_PIECES}>();
+    let correct_encodings = random_bytes_vec::<{ 4096 * NUM_PIECES }>();
+    let ivs = random_bytes_vec::<{ 32 * NUM_PIECES }>();
 
     let mut encodings = correct_encodings.clone();
     let instances = opencl::initialize().unwrap();
@@ -81,7 +81,11 @@ fn test_big_random_piece() {
     opencl::cleanup(instances).unwrap();
 
     // Verify wth CPU implementation as we don't have GPU-based decoding
-    for (encoding, (correct_encoding, iv)) in encodings.chunks_exact(4096).zip(correct_encodings.chunks_exact(4096).zip(ivs.chunks_exact(32))) {
+    for (encoding, (correct_encoding, iv)) in encodings.chunks_exact(4096).zip(
+        correct_encodings
+            .chunks_exact(4096)
+            .zip(ivs.chunks_exact(32)),
+    ) {
         let mut decoding: [u8; 4096] = encoding.try_into().unwrap();
         cpu::decode(&mut decoding, &iv, layers).unwrap();
 
@@ -99,15 +103,19 @@ fn test_big_random_piece_pinned() {
     let instances = opencl::initialize().unwrap();
 
     let mut encodings = opencl::pinned_memory_alloc(instances, 4096 * NUM_PIECES).unwrap();
-    random_bytes_vec_inplace::<{4096 * NUM_PIECES}>(&mut encodings);
-    let ivs = random_bytes_vec::<{32 * NUM_PIECES}>();
+    random_bytes_vec_inplace::<{ 4096 * NUM_PIECES }>(&mut encodings);
+    let ivs = random_bytes_vec::<{ 32 * NUM_PIECES }>();
 
     let correct_encodings = encodings.clone();
 
     opencl::encode(&mut encodings, &ivs, layers, instances).unwrap();
 
     // Verify wth CPU implementation as we don't have GPU-based decoding
-    for (encoding, (correct_encoding, iv)) in encodings.chunks_exact(4096).zip(correct_encodings.chunks_exact(4096).zip(ivs.chunks_exact(32))) {
+    for (encoding, (correct_encoding, iv)) in encodings.chunks_exact(4096).zip(
+        correct_encodings
+            .chunks_exact(4096)
+            .zip(ivs.chunks_exact(32)),
+    ) {
         let mut decoding: [u8; 4096] = encoding.try_into().unwrap();
         cpu::decode(&mut decoding, &iv, layers).unwrap();
 

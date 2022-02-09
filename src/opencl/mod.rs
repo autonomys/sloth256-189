@@ -42,9 +42,7 @@ mod ffi {
             instances: *const u8,
         ) -> i32;
 
-        pub(super) fn sloth256_189_opencl_init(
-            error: &mut i32,
-        ) -> *const u8;
+        pub(super) fn sloth256_189_opencl_init(error: &mut i32) -> *const u8;
 
         pub(super) fn sloth256_189_pinned_alloc(
             instances: *const u8,
@@ -52,13 +50,9 @@ mod ffi {
             error: &mut i32,
         ) -> *mut u8;
 
-        pub(super) fn sloth256_189_pinned_free(
-            instances: *const u8,
-        ) -> i32;
+        pub(super) fn sloth256_189_pinned_free(instances: *const u8) -> i32;
 
-        pub(super) fn sloth256_189_opencl_cleanup(
-            instances: *const u8,
-        ) -> i32;
+        pub(super) fn sloth256_189_opencl_cleanup(instances: *const u8) -> i32;
     }
 }
 
@@ -68,17 +62,13 @@ mod ffi {
 pub fn pinned_memory_alloc(instance: *const u8, size: usize) -> Result<Vec<u8>, OpenCLEncodeError> {
     let mut return_code: i32 = 0;
 
-    let pointer = unsafe {
-        ffi::sloth256_189_pinned_alloc(instance, size, &mut return_code)
-    };
+    let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instance, size, &mut return_code) };
 
     if return_code != 0 {
         return Err(OpenCLEncodeError::OpenCLError(return_code));
     }
 
-    let pointer_as_vec = unsafe{
-        Vec::from_raw_parts(pointer, size, size)
-    };
+    let pointer_as_vec = unsafe { Vec::from_raw_parts(pointer, size, size) };
 
     return Ok(pointer_as_vec);
 }
@@ -87,9 +77,7 @@ pub fn pinned_memory_alloc(instance: *const u8, size: usize) -> Result<Vec<u8>, 
 /// call is required since the vector in Rust will be using memory freed in C.
 /// Call this function before calling the cleanup function
 pub fn pinned_memory_free(instances: *const u8) -> Result<(), OpenCLEncodeError> {
-    let return_code = unsafe {
-        ffi::sloth256_189_pinned_free(instances)
-    };
+    let return_code = unsafe { ffi::sloth256_189_pinned_free(instances) };
 
     if return_code != 0 {
         return Err(OpenCLEncodeError::OpenCLError(return_code));
@@ -103,9 +91,7 @@ pub fn pinned_memory_free(instances: *const u8) -> Result<(), OpenCLEncodeError>
 /// Calling this once at the start is sufficient.
 pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
     let mut return_code: i32 = 0;
-    let instances = unsafe {
-        ffi::sloth256_189_opencl_init(&mut return_code)
-    };
+    let instances = unsafe { ffi::sloth256_189_opencl_init(&mut return_code) };
 
     if return_code != 0 {
         return Err(OpenCLEncodeError::OpenCLError(return_code));
@@ -117,9 +103,7 @@ pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
 /// Cleans up the resources allocated in the initialization of the encode kernel.
 /// Calling this once at the end is sufficient.
 pub fn cleanup(instances: *const u8) -> Result<(), OpenCLEncodeError> {
-    let return_code = unsafe {
-        ffi::sloth256_189_opencl_cleanup(instances)
-    };
+    let return_code = unsafe { ffi::sloth256_189_opencl_cleanup(instances) };
 
     if return_code != 0 {
         return Err(OpenCLEncodeError::OpenCLError(return_code));
@@ -132,7 +116,12 @@ pub fn cleanup(instances: *const u8) -> Result<(), OpenCLEncodeError> {
 ///
 /// NOTE: This encode function works on batches of pieces and IVs that should be multiple of 1024.
 /// For smaller batches or encoding of individual pieces use CPU implementation.
-pub fn encode(pieces: &mut [u8], ivs: &[u8], layers: usize, instances: *const u8) -> Result<(), OpenCLEncodeError> {
+pub fn encode(
+    pieces: &mut [u8],
+    ivs: &[u8],
+    layers: usize,
+    instances: *const u8,
+) -> Result<(), OpenCLEncodeError> {
     if pieces.len() % (1024 * 4096) != 0 {
         return Err(OpenCLEncodeError::InvalidPieces(pieces.len()));
     }
@@ -147,7 +136,13 @@ pub fn encode(pieces: &mut [u8], ivs: &[u8], layers: usize, instances: *const u8
     }
 
     let return_code = unsafe {
-        ffi::sloth256_189_opencl_batch_encode(pieces.as_mut_ptr(), pieces.len(), ivs.as_ptr(), layers, instances)
+        ffi::sloth256_189_opencl_batch_encode(
+            pieces.as_mut_ptr(),
+            pieces.len(),
+            ivs.as_ptr(),
+            layers,
+            instances,
+        )
     };
 
     if return_code != 0 {

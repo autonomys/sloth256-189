@@ -61,7 +61,12 @@ fn main() {
     }
 
     if cfg!(feature = "opencl") {
-        env::var("DEP_OPENMP_FLAG").unwrap().split(" ").for_each(|f| { cc.flag(f); });
+        env::var("DEP_OPENMP_FLAG")
+            .unwrap()
+            .split(" ")
+            .for_each(|f| {
+                cc.flag(f);
+            });
 
         println!("cargo:rustc-link-lib=OpenCL");
         println!("cargo:rustc-link-search=/opt/amdgpu-pro/lib64/");
