@@ -12,7 +12,9 @@ jobs:
         os:
           - ubuntu-20.04
           - macos-10.15
+          - macos-11
           - windows-2019
+          - windows-2022
         rust:
           - stable
 
@@ -60,8 +62,8 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-        #          - macos-10.15
-        #          - windows-2019
+          - windows-2019
+          - windows-2022
         rust:
           - stable
 
@@ -78,14 +80,16 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      - name: CUDA toolchain
-        run: sudo apt-get install --no-install-recommends -y nvidia-cuda-toolkit
+      # Workaround as the newest version of MSVC does not support this latest version of CUDA, workaround for Windows 11/Windows Server 2022.
+      - name: Add MSVC compiler
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          toolset: 14.29
+        if: matrix.os == 'windows-2022'
 
-      # CUDA toolchain above doesn't like GCC newer than 8
-      - name: Select GCC 8
-        run: |
-          echo "CC=gcc-8" >> $GITHUB_ENV
-          echo "CXX=g++-8" >> $GITHUB_ENV
+      - name: CUDA toolchain
+        uses: Jimver/cuda-toolkit@v0.2.5
+        if: runner.os == 'Linux' || runner.os == 'Windows'
 
       - name: Configure cache
         uses: actions/cache@v2
@@ -95,12 +99,6 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ matrix.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
-
-      - name: cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
 
       - name: cargo clippy
         uses: actions-rs/cargo@v1
