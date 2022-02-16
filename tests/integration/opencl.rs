@@ -29,6 +29,7 @@ fn test_random_piece() {
         ivs.extend_from_slice(&expanded_iv);
     }
     let instances = opencl::initialize().unwrap();
+    opencl::determine_work_division_configuration(4096 * 1024, LAYERS, instances).unwrap();
     opencl::encode(&mut encodings, &ivs, layers, instances).unwrap();
     opencl::cleanup(instances).unwrap();
 
@@ -52,6 +53,7 @@ fn test_known_piece() {
         ivs.extend_from_slice(&EXPANDED_IV);
     }
     let instances = opencl::initialize().unwrap();
+    opencl::determine_work_division_configuration(4096 * 1024, LAYERS, instances).unwrap();
     opencl::encode(&mut encodings, &ivs, LAYERS, instances).unwrap();
     opencl::cleanup(instances).unwrap();
 
@@ -68,6 +70,7 @@ fn test_random_piece_pinned() {
     let layers = 4096 / 32;
 
     let instances = opencl::initialize().unwrap();
+    opencl::determine_work_division_configuration(4096 * NUM_PIECES, layers, instances).unwrap();
 
     let mut encodings = opencl::pinned_memory_alloc(instances, 4096 * NUM_PIECES).unwrap();
     random_bytes_vec_inplace::<{ 4096 * NUM_PIECES }>(&mut encodings);
@@ -105,6 +108,7 @@ fn test_big_random_piece() {
 
     let mut encodings = correct_encodings.clone();
     let instances = opencl::initialize().unwrap();
+    opencl::determine_work_division_configuration(4096 * NUM_PIECES, layers, instances).unwrap();
     opencl::encode(&mut encodings, &ivs, layers, instances).unwrap();
     opencl::cleanup(instances).unwrap();
 
@@ -128,6 +132,7 @@ fn test_big_random_piece_pinned() {
     let layers = 2;
 
     let instances = opencl::initialize().unwrap();
+    opencl::determine_work_division_configuration(4096 * NUM_PIECES, layers, instances).unwrap();
 
     let mut encodings = opencl::pinned_memory_alloc(instances, 4096 * NUM_PIECES).unwrap();
     random_bytes_vec_inplace::<{ 4096 * NUM_PIECES }>(&mut encodings);

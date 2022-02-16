@@ -80,6 +80,12 @@ pub fn get_opencl_error_string(error_code: i32) -> String {
         // so no memory to free
         2036 => "SLOTH_NO_ALLOCATED_PINNED_MEMORY".to_string(),
 
+        // The work division between the CPU and the OpenCL compatible
+        // devices were not yet determined.
+        // Run the "determine_work_division_configuration" function before
+        // encoding.
+        2037 => "SLOTH_DEVICE_WORK_DIVISION_NOT_DETERMINED".to_string(),
+
         _ => "Unknown OpenCL error".to_string(),
     }
 }

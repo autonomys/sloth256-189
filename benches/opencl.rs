@@ -27,6 +27,13 @@ pub fn criterion_benchmark(c: &mut Criterion) {
 
     let mut layers: usize = 1;
     while layers <= MAX_LAYERS {
+        sloth256_189::opencl::determine_work_division_configuration(
+            4096 * NUM_PIECES,
+            layers,
+            instances,
+        )
+        .unwrap();
+
         group.bench_function(
             format!(
                 "Encode-parallel/{} GB/{} pieces/{} layer(s)",

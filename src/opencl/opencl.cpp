@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <omp.h>
 
-#include <algorithm>
 #include <thread>
 #include <chrono>
 
@@ -31,6 +30,7 @@ struct EncodeOpenCLInstances {
     cl_mem pinned;
     unsigned char* c_pinned;
     int pinned_pos;
+    double* factors;
 };
 
 extern "C" {
@@ -49,20 +49,10 @@ void sloth256_189_cpu_encode_parallel(unsigned char* inout,
 
     unsigned int num_threads = std::thread::hardware_concurrency();
 
-    // Code left in to time the encoding of data on the CPU and various different
-    // platforms. Uncomment the below line of code in addition to the code in
-    // lines 62-65 to enable reporting of CPU encoding times.
-    /*auto start = std::chrono::high_resolution_clock::now();*/
-
     #pragma omp parallel for num_threads(num_threads / 2 - 1)
     for (long long int i = 0; i < (long long int)num_pieces; i++) {
         sloth256_189_encode(inout + 4096 * (size_t)i, 4096, iv + 32 * (size_t)i, layers);
     }
-
-    /*auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Total elapsed time for CPU encode: "
-              << (std::chrono::duration<double>(end - start)).count()
-              << " seconds" << std::endl;*/
 }
 
 // Allocate pinned memory bound to one of the Nvidia instances.
@@ -126,6 +116,115 @@ cl_int sloth256_189_pinned_free(EncodeOpenCLInstances* instances) {
 
     err = clFinish(instance->cq[0]);
     OCL_ERR_CHECK(err, err);
+
+    instances->pinned_pos = -1;
+
+    return CL_SUCCESS;
+}
+
+void sloth256_189_opencl_batch_encode_instance(unsigned char*, size_t, const unsigned char*,
+                                               size_t, EncodeOpenCLInstance*, cl_int&);
+
+// Run a benchmark with the given size and the layers and determine the optimal
+// work division between the CPU and all the OpenCL compatible devices for that
+// specific configuration
+extern "C"
+cl_int sloth256_189_opencl_determine_factors(size_t size,
+                                             size_t layers,
+                                             EncodeOpenCLInstances* instances) {
+
+    cl_int err;
+    instances->factors = (double*)malloc(sizeof(double) * (instances->num_instances + 1));
+
+    bool pinned = true;
+    unsigned char* pieces = sloth256_189_pinned_alloc(instances, size, err);
+    if (err == SLOTH_PINNED_MEMORY_ALLOCATION_FAILURE) {
+        // Fall back to using non-pinned memory if pinned memory allocation fails
+        pieces = (unsigned char*)malloc(size);
+        pinned = false;
+        err = CL_SUCCESS;
+    }
+    else if (err != CL_SUCCESS) {
+        OCL_ERR_CHECK(err, err);
+    }
+
+    unsigned char* ivs = (unsigned char*)malloc(size / 32);
+    memset(pieces, 5, size);
+    memset(ivs, 3, size / 32);
+
+    // We keep track of the total time spent on encoding on all devices.
+    // Later we will use the total time to calculate the work division ratios
+    // between devices
+    double time_sum = 0;
+    for (size_t i = 0; i < instances->num_instances; i++) {
+
+        EncodeOpenCLInstance* instance = instances->instances + i;
+
+        // This also assures that this step will not take too long
+        // We only encode the one "div"'th of the buffer
+        // This ensures that this step will not take too long
+        size_t div;
+        switch (instance->platform) {
+            case NVIDIA:
+                div = 1;
+                break;
+            case AMD:
+                div = 1;
+                break;
+            case INTEL:
+                div = 16;
+                break;
+            default:
+                // Should never happen since functions in opencl_utils.hpp only get
+                // GPUs from only Nvidia, AMD or Intel platforms
+                assert(false);
+                break;
+        }
+        auto start = std::chrono::high_resolution_clock::now();
+        sloth256_189_opencl_batch_encode_instance(pieces, size / div, ivs,
+                                                  layers, instance, err);
+        auto end = std::chrono::high_resolution_clock::now();
+        if (err != CL_SUCCESS) {
+            free(ivs);
+            if (pinned) {
+                err = sloth256_189_pinned_free(instances);
+                OCL_ERR_CHECK(err, err);
+            }
+            else {
+                free(pieces);
+            }
+            OCL_ERR_CHECK(err, err);
+        }
+        double time = (std::chrono::duration<double>(end - start)).count();
+        // We act as if we have encoded the whole buffer
+        time *= div;
+        instances->factors[i] = time;
+        time_sum += time;
+    }
+    size_t div = 4; // For the CPU, we only encode the 1 4'th of the buffer
+    auto start = std::chrono::high_resolution_clock::now();
+    sloth256_189_cpu_encode_parallel(pieces, size / div, ivs, layers);
+    auto end = std::chrono::high_resolution_clock::now();
+    double time = (std::chrono::duration<double>(end - start)).count();
+    time *= div; // Again, we act as if we have encoded the whole buffer
+    instances->factors[instances->num_instances] = time;
+    time_sum += time;
+
+    // Free resources allocated for the benchmark
+    free(ivs);
+    if (pinned) {
+        err = sloth256_189_pinned_free(instances);
+        OCL_ERR_CHECK(err, err);
+    }
+    else {
+        free(pieces);
+    }
+
+    // Calculate a "factor" for the CPU and each OpenCL compatible GPU in relation
+    // to the total encoding time
+    for (size_t i = 0; i < instances->num_instances + 1; i++) {
+        instances->factors[i] = time_sum / instances->factors[i];
+    }
 
     return CL_SUCCESS;
 }
@@ -278,6 +377,7 @@ EncodeOpenCLInstances* sloth256_189_opencl_init(cl_int& err,
     instances->pinned = NULL;
     instances->c_pinned = NULL;
     instances->pinned_pos = -1;
+    instances->factors = NULL;
 
     return instances;
 }
@@ -307,6 +407,8 @@ cl_int sloth256_189_opencl_cleanup(EncodeOpenCLInstances* instances) {
     }
 
     free(instances->instances);
+    if (instances->factors != NULL)
+        free(instances->factors);
     free(instances);
 
     return CL_SUCCESS;
@@ -386,10 +488,6 @@ void sloth256_189_opencl_batch_encode_instance(unsigned char* inout_offset,
             break;
     }
 
-    // Code left in to time the encoding of data on the CPU and various different
-    // platforms. Uncomment the below line of code in addition to the code in
-    // lines 560-564 to enable reporting of GPU encoding times for all GPU platforms available.
-    /*auto start = std::chrono::high_resolution_clock::now();*/
 
     // Start the encoding process
     size_t remaining_size = encode_size, num_command_queues = 1;
@@ -562,31 +660,14 @@ void sloth256_189_opencl_batch_encode_instance(unsigned char* inout_offset,
 
     err = clFinish(instance->cq[num_command_queues - 1]);
     if (err != CL_SUCCESS) return;
-
-    /*auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Total elapsed time for GPU encode on platform "
-              << (int)instance->platform << ": "
-              << (std::chrono::duration<double>(end - start)).count()
-              << " seconds" << std::endl;*/
 }
-
-// Values that determine how much of the work is delegated to the respective platforms
-// For example, on a system where there are only Nvidia GPUs and CPUs, and the CPU and NVIDIA
-// factors are 80.0f and 20.0f respectively, 80% of the data will be encoded by the Nvidia GPUs
-// and 20% of the data will be encoded by the CPUs
-//
-// Currently we hand-tune the factors for each system. The commented out codes above time the
-// execution of the encode operation on each platform to give us a hint on how to tune the factors
-#define CPU_FACTOR 0.75f
-#define NVIDIA_FACTOR 100.0f
-#define AMD_FACTOR 15.0f
-#define INTEL_FACTOR 1.3f
 
 // Note: The work is sent to the CPU directly, not through any OpenCL CPU drivers
 // Therefore having or not having OpenCL CPU drivers installed will not have an impact on the encoding
 // process
 
-// Delegates work to the CPU and to each OpenCL compatible GPU based on the FACTORS above
+// Delegates work to the CPU and to each OpenCL compatible GPU based on the word division calculated in
+// the initialization step
 // Launches a thread for the CPU and each OpenCL compatible GPU for concurrent queueing
 // of commands
 extern "C"
@@ -596,6 +677,10 @@ cl_int sloth256_189_opencl_batch_encode(unsigned char* inout,
                                         size_t layers,
                                         EncodeOpenCLInstances* instances) {
 
+    if (instances->factors == NULL) {
+        return SLOTH_DEVICE_WORK_DIVISION_NOT_DETERMINED;
+    }
+
     // Create as many error code variables as the amount of OpenCL compatible GPUs
     cl_int* errs = (cl_int*)malloc(sizeof(cl_int) * instances->num_instances);
     for (size_t i = 0; i < instances->num_instances; i++)
@@ -604,76 +689,40 @@ cl_int sloth256_189_opencl_batch_encode(unsigned char* inout,
     // A thread for the CPU and each GPU
     std::vector<std::thread> threads(instances->num_instances + 1);
 
-    // Count the number of GPUs belonging to each platform
-    size_t num_nvidia = 0, num_intel = 0, num_amd = 0;
-    for (size_t i = 0; i < instances->num_instances; i++) {
-        switch (instances->instances[i].platform) {
-            case NVIDIA:
-                num_nvidia++;
-                break;
-            case AMD:
-                num_amd++;
-                break;
-            case INTEL:
-                num_intel++;
-                break;
-            default:
-                // should never happen since functions in opencl_utils.hpp only get
-                // GPUs from only Nvidia, AMD or Intel platforms
-                assert(false);
-                break;
-        }
-    }
-
     // Calculate how many multiples of 1024 pieces the CPU and each GPU will encode
     // This number is determined based on the ratio between the factor of the platform
     // the GPU belongs to and the sum of all the factors (total_factor) each device of a platform has.
     size_t* sizes = (size_t*)malloc(sizeof(size_t) * (instances->num_instances + 1));
-    double div = (double)(total_size / 1024 / 4096);
-    double total_factor = CPU_FACTOR +
-                          NVIDIA_FACTOR * num_nvidia +
-                          AMD_FACTOR * num_amd +
-                          INTEL_FACTOR * num_intel;
 
     // In the case that the total number of pieces was not divided fully,
     // the remaining size is stored in the leftover variable and assigned to
-    // the first GPU device present
+    // the most powerful GPU (or the CPU if it's more powerful) based on the
+    // "factors" computed in the initialization step
     size_t leftover = total_size;
 
+    // Calculate the number of pieces the CPU and each OpenCL compatible GPU will encode
+    double div = (double)(total_size / 1024 / 4096);
+    double total_factor = 0;
+    for (size_t i = 0; i < instances->num_instances + 1; i++) {
+        total_factor += instances->factors[i];
+    }
     for (size_t i = 0; i < instances->num_instances; i++) {
-        switch (instances->instances[i].platform) {
-            case NVIDIA:
-                sizes[i] = (size_t)(div * NVIDIA_FACTOR / total_factor) * 1024 * 4096;
-                break;
-            case AMD:
-                sizes[i] = (size_t)(div * AMD_FACTOR / total_factor) * 1024 * 4096;
-                break;
-            case INTEL:
-                sizes[i] = (size_t)(div * INTEL_FACTOR / total_factor) * 1024 * 4096;
-                break;
-            default:
-                // should never happen since functions in opencl_utils.hpp only get
-                // GPUs from only Nvidia, AMD or Intel platforms
-                assert(false);
-                break;
-        }
+        sizes[i] = (size_t)(div * instances->factors[i] / total_factor) * 1024 * 4096;
+        //std::cout << "sizes[" << i << "] = " << sizes[i] << std::endl;
         leftover -= sizes[i];
     }
-    sizes[instances->num_instances] = (size_t)(div * CPU_FACTOR / total_factor) * 1024 * 4096;
+    sizes[instances->num_instances] = (size_t)(div * instances->factors[instances->num_instances] / total_factor) * 1024 * 4096;
     leftover -= sizes[instances->num_instances];
-    // Assign the leftover to the first device present with assigned size > 0
-    bool assigned = false;
+
+    size_t max_factor_index = -1;
+    double max_factor = 0.0f;
     for (size_t i = 0; i < instances->num_instances + 1; i++) {
-        if (sizes[i] > 0) {
-            sizes[i] += leftover;
-            assigned = true;
-            break;
+        if (instances->factors[i] > max_factor) {
+            max_factor = instances->factors[i];
+            max_factor_index = i;
         }
     }
-    // If no device is present with assigned size > 0, assign the leftover to the first device
-    if (!assigned) {
-        sizes[0] += leftover;
-    }
+    sizes[max_factor_index] += leftover;
 
     // Encode the delegated amount of data for each GPU in a separate thread
     size_t offset = 0;

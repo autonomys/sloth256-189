@@ -49,6 +49,12 @@ mod ffi {
             non_nvidia_cl: *const i8,
         ) -> *const u8;
 
+        pub(super) fn sloth256_189_opencl_determine_factors(
+            size: usize,
+            layers: usize,
+            instances: *const u8,
+        ) -> i32;
+
         pub(super) fn sloth256_189_pinned_alloc(
             instances: *const u8,
             size: usize,
@@ -144,6 +150,32 @@ pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
     }
 
     return Ok(instances);
+}
+
+/// Determine the work division configuration between the CPU and the OpenCL compatible
+/// devices for a given size and number of layers.
+/// Call this function after initialization and if the encoding size or number of layers
+/// change.
+pub fn determine_work_division_configuration(
+    size: usize,
+    layers: usize,
+    instances: *const u8,
+) -> Result<(), OpenCLEncodeError> {
+    // Ensure that the given size is valid
+    if size % (1024 * 4096) != 0 {
+        return Err(OpenCLEncodeError::InvalidPieces(size));
+    }
+
+    let return_code =
+        unsafe { ffi::sloth256_189_opencl_determine_factors(size, layers, instances) };
+
+    if return_code != 0 {
+        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
+            return_code,
+        )));
+    }
+
+    return Ok(());
 }
 
 /// Cleans up the resources allocated in the initialization of the encode kernel.
