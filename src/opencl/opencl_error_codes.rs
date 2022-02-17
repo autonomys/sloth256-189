@@ -86,6 +86,6 @@ pub fn get_opencl_error_string(error_code: i32) -> String {
         // encoding.
         2037 => "SLOTH_DEVICE_WORK_DIVISION_NOT_DETERMINED".to_string(),
 
-        _ => "Unknown OpenCL error".to_string(),
+        code => format!("Unknown OpenCL error {}", code),
     }
 }
