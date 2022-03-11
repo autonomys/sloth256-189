@@ -76,7 +76,7 @@ fn main() {
             let cuda_path = env::var("CUDA_PATH").unwrap();
             println!("cargo:rustc-link-search={}/lib/x64", cuda_path);
 
-            cuda_include = cuda_path + &"/include".to_string();
+            cuda_include = cuda_path + "/include";
         }
 
         cc::Build::new()
