@@ -55,6 +55,8 @@ mod ffi {
             instances: *const u8,
         ) -> i32;
 
+        pub(super) fn sloth256_189_pinned_alloc_supported(instances: *const u8) -> bool;
+
         pub(super) fn sloth256_189_pinned_alloc(
             instances: *const u8,
             size: usize,
@@ -67,6 +69,10 @@ mod ffi {
     }
 }
 
+/// Check whether pinned memory is supported
+pub fn pinned_memory_alloc_supported(instance: *const u8) -> bool {
+    unsafe { ffi::sloth256_189_pinned_alloc_supported(instance) }
+}
 /// Allocate pinned and aligned host memory. This makes memory copy operations on NVIDIA GPUs faster
 /// and allignment is required for zero-copy buffers for Intel integrated graphics devices
 /// Call this function after calling the init function

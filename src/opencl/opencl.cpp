@@ -55,6 +55,19 @@ void sloth256_189_cpu_encode_parallel(unsigned char* inout,
     }
 }
 
+extern "C"
+bool sloth256_189_pinned_alloc_supported(EncodeOpenCLInstances* instances) {
+    EncodeOpenCLInstance* instance = NULL;
+    for (size_t i = 0; i < instances->num_instances; i++) {
+        if (instances->instances[i].platform == NVIDIA) {
+            instance = instances->instances + i;
+            break;
+        }
+    }
+
+    return instance != NULL;
+}
+
 // Allocate pinned memory bound to one of the Nvidia instances.
 // In contrast to CUDA, pinned memory in OpenCL cannot exist on its own
 // and must be "bound" to a platform. We bind it to an Nvidia GPU

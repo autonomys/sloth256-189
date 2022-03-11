@@ -70,6 +70,10 @@ fn test_random_piece_pinned() {
     let layers = 4096 / 32;
 
     let instances = opencl::initialize().unwrap();
+    if !opencl::pinned_memory_alloc_supported(instances).unwrap() {
+        println!("Skipping test, not supported on non-Nvidia GPUs");
+        return;
+    }
     opencl::determine_work_division_configuration(4096 * NUM_PIECES, layers, instances).unwrap();
 
     let mut encodings = opencl::pinned_memory_alloc(instances, 4096 * NUM_PIECES).unwrap();
