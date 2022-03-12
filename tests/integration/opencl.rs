@@ -70,7 +70,7 @@ fn test_random_piece_pinned() {
     let layers = 4096 / 32;
 
     let instances = opencl::initialize().unwrap();
-    if !opencl::pinned_memory_alloc_supported(instances).unwrap() {
+    if !opencl::pinned_memory_alloc_supported(instances) {
         println!("Skipping test, not supported on non-Nvidia GPUs");
         return;
     }
