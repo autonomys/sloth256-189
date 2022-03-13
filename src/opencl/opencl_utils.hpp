@@ -127,6 +127,12 @@ std::vector<cl_device_id> getAllGPUs(cl_int& err) {
             if (err != CL_SUCCESS) return devices;
             std::transform(device_vendor.begin(), device_vendor.end(), device_vendor.begin(), ::tolower);
 
+            // Open Source AMD supports only OpenCL 1.1 and not working for our use case, while Intel is fine
+            if (platform_name.find("Clover") != std::string::npos &&
+                device_vendor.find("amd") != std::string::npos) {
+                continue;
+            }
+
             if (device_vendor.find("nvidia") == std::string::npos &&
                 device_vendor.find("amd") == std::string::npos &&
                 device_vendor.find("advanced micro devices") == std::string::npos &&
@@ -208,6 +214,11 @@ std::vector<cl_device_id> getAllAMDGPUs(cl_int& err) {
 
         std::string platform_name = getPlatformName(platforms[i], err);
         if (err != CL_SUCCESS) return devices;
+
+        // Open Source AMD supports only OpenCL 1.1 and not working for our use case
+        if (platform_name.find("Clover") != std::string::npos) {
+            continue;
+        }
 
         cl_uint num_devices;
 
