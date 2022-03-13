@@ -59,4 +59,38 @@ fn main() {
             .file("src/cuda/ptx.cu")
             .compile("sloth256_189_cuda");
     }
+
+    if cfg!(feature = "opencl") {
+        env::var("DEP_OPENMP_FLAG")
+            .unwrap()
+            .split(' ')
+            .for_each(|f| {
+                cc.flag(f);
+            });
+
+        println!("cargo:rustc-link-lib=OpenCL");
+        println!("cargo:rustc-link-search=/opt/amdgpu-pro/lib64/");
+
+        let mut cuda_include: String = "".to_string();
+        if env::var("CUDA_PATH").is_ok() {
+            let cuda_path = env::var("CUDA_PATH").unwrap();
+            println!("cargo:rustc-link-search={}/lib/x64", cuda_path);
+
+            cuda_include = cuda_path + "/include";
+        }
+
+        cc::Build::new()
+            .cpp(true)
+            .flag_if_supported("-pthread")
+            .flag_if_supported("-fopenmp")
+            .flag_if_supported("/openmp")
+            .flag_if_supported("-std:c++17")
+            .flag_if_supported("/EHsc")
+            .flag_if_supported("-std=c++17")
+            .include("/opt/amdgpu-pro/include/")
+            .include("/opt/intel/inteloneapi/compiler/latest/linux/include/sycl/")
+            .include(cuda_include)
+            .file("src/opencl/opencl.cpp")
+            .compile("sloth256_189_opencl");
+    }
 }

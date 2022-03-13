@@ -26,17 +26,20 @@ include = [
 ]
 
 [package.metadata.docs.rs]
-features = ["cuda"]
+features = ["cuda", "opencl"]
 default-target = "x86_64-unknown-linux-gnu"
 targets = []
 
 [dependencies]
 thiserror = "1.0"
+num-format = "0.4.0"
+openmp-sys = "1.2.1"
 
 [dev-dependencies]
-criterion = "0.3.5"
+criterion = {version = "0.3.5", features = ["html_reports"]}
 rand = "0.8.4"
 rayon = "1.5.1"
+openmp-sys = "1.2.1"
 
 [build-dependencies]
 cc = "1.0.70"
@@ -48,6 +51,7 @@ default = []
 # Force-disable ASM x86-64 implemenation for testing/benchmarking purposes
 no-asm = []
 cuda = []
+opencl = []
 
 [[bench]]
 name = "cpu"
@@ -57,3 +61,8 @@ harness = false
 name = "cuda"
 harness = false
 required-features = ["cuda"]
+
+[[bench]]
+name = "opencl"
+harness = false
+required-features = ["opencl"]
