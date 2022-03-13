@@ -145,9 +145,10 @@ std::vector<cl_device_id> getAllGPUs(cl_int& err) {
         }
     }
 
-    if (devices.size() == 0)
-        err = SLOTH_NO_OPENCL_COMPATIBLE_GPUS;
-    else
+    if (devices.size() == 0) {
+        if (err == CL_SUCCESS)
+          err = SLOTH_NO_OPENCL_COMPATIBLE_GPUS;
+    } else
         err = CL_SUCCESS;
 
     return devices;
@@ -192,9 +193,10 @@ std::vector<cl_device_id> getAllNvidiaGPUs(cl_int& err) {
         }
     }
 
-    if (devices.size() == 0)
-        err = SLOTH_NO_OPENCL_COMPATIBLE_NVIDIA_GPUS;
-    else
+    if (devices.size() == 0) {
+        if (err == CL_SUCCESS)
+          err = SLOTH_NO_OPENCL_COMPATIBLE_NVIDIA_GPUS;
+    } else
         err = CL_SUCCESS;
 
     return devices;
@@ -245,9 +247,10 @@ std::vector<cl_device_id> getAllAMDGPUs(cl_int& err) {
         }
     }
 
-    if (devices.size() == 0)
-        err = SLOTH_NO_OPENCL_COMPATIBLE_AMD_GPUS;
-    else
+    if (devices.size() == 0) {
+        if (err == CL_SUCCESS)
+          err = SLOTH_NO_OPENCL_COMPATIBLE_AMD_GPUS;
+    } else
         err = CL_SUCCESS;
 
     return devices;
@@ -292,9 +295,10 @@ std::vector<cl_device_id> getAllIntelGPUs(cl_int& err) {
         }
     }
 
-    if (devices.size() == 0)
-        err = SLOTH_NO_OPENCL_COMPATIBLE_INTEL_GPUS;
-    else
+    if (devices.size() == 0) {
+        if (err == CL_SUCCESS)
+          err = SLOTH_NO_OPENCL_COMPATIBLE_INTEL_GPUS;
+    } else
         err = CL_SUCCESS;
 
     return devices;
