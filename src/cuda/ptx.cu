@@ -141,9 +141,6 @@ extern "C" int sloth256_189_cuda_batch_encode(unsigned int piece[], size_t len,
         }
     }
 
-    cudaFree(d_piece);
-    cudaFree(d_iv);
-
     // cudaStatus is 0 if there is no error and other numbers for specific errors that we inspected for
     return cudaStatus;
 }

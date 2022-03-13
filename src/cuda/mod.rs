@@ -81,7 +81,7 @@ pub fn encode(pieces: &mut [u8], ivs: &[u8], layers: usize) -> Result<(), Encode
     let return_code = unsafe {
         ffi::sloth256_189_cuda_batch_encode(pieces.as_mut_ptr(), pieces.len(), ivs.as_ptr(), layers)
     };
-    return match return_code {
+    match return_code {
         0 => Ok(()),
         1 => Err(EncodeError::CudaMemGetInfo),
         2 => Err(EncodeError::CudaMallocPieces),
@@ -92,5 +92,5 @@ pub fn encode(pieces: &mut [u8], ivs: &[u8], layers: usize) -> Result<(), Encode
         7 => Err(EncodeError::CudaSynchronize),
         8 => Err(EncodeError::MemcpyPieceToHost),
         _ => unreachable!("there is no such error code being returned"),
-    };
+    }
 }
