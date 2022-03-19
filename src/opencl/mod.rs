@@ -138,47 +138,55 @@ impl OpenCLEncodeError {
 
 // importing the functions from .c files
 mod ffi {
-    use std::os::raw::c_char;
+    use std::os::raw::{c_char, c_int, c_uchar};
+
+    #[repr(C)]
+    pub struct EncodeOpenCLInstances {
+        _data: [u8; 0],
+    }
 
     extern "C" {
         pub(super) fn sloth256_189_opencl_batch_encode(
-            inout: *mut u8,
+            inout: *mut c_uchar,
             len: usize,
-            iv: *const u8,
+            iv: *const c_uchar,
             layers: usize,
-            instances: *const u8,
-        ) -> i32;
+            instances: *const EncodeOpenCLInstances,
+        ) -> c_int;
 
         pub(super) fn sloth256_189_opencl_init(
-            error: &mut i32,
+            error: &mut c_int,
             encode_cl: *const c_char,
             nvidia_specific_cl: *const c_char,
             mod256_189_cu: *const c_char,
             non_nvidia_cl: *const c_char,
-        ) -> *const u8;
+        ) -> *const EncodeOpenCLInstances;
 
         pub(super) fn sloth256_189_opencl_determine_factors(
             size: usize,
             layers: usize,
-            instances: *const u8,
-        ) -> i32;
+            instances: *const EncodeOpenCLInstances,
+        ) -> c_int;
 
-        pub(super) fn sloth256_189_pinned_alloc_supported(instances: *const u8) -> bool;
+        pub(super) fn sloth256_189_pinned_alloc_supported(
+            instances: *const EncodeOpenCLInstances,
+        ) -> bool;
 
         pub(super) fn sloth256_189_pinned_alloc(
-            instances: *const u8,
+            instances: *const EncodeOpenCLInstances,
             size: usize,
-            error: &mut i32,
+            error: &mut c_int,
         ) -> *mut u8;
 
-        pub(super) fn sloth256_189_pinned_free(instances: *const u8) -> i32;
+        pub(super) fn sloth256_189_pinned_free(instances: *const EncodeOpenCLInstances) -> c_int;
 
-        pub(super) fn sloth256_189_opencl_cleanup(instances: *const u8) -> i32;
+        pub(super) fn sloth256_189_opencl_cleanup(instances: *const EncodeOpenCLInstances)
+            -> c_int;
     }
 }
 
 /// Check whether pinned memory is supported
-pub fn pinned_memory_alloc_supported(instance: *const u8) -> bool {
+pub fn pinned_memory_alloc_supported(instance: *const ffi::EncodeOpenCLInstances) -> bool {
     unsafe { ffi::sloth256_189_pinned_alloc_supported(instance) }
 }
 
@@ -195,10 +203,13 @@ pub fn pinned_memory_alloc_supported(instance: *const u8) -> bool {
 /// See: https://stackoverflow.com/questions/42011504/why-does-clcreatebuffer-with-cl-mem-alloc-host-ptr-use-discrete-device-memory
 ///
 /// Therefore we can only use around 1/3 of the available amount of device memory at maximum.
-pub fn pinned_memory_alloc(instance: *const u8, size: usize) -> Result<Vec<u8>, OpenCLEncodeError> {
+pub fn pinned_memory_alloc(
+    instances: *const ffi::EncodeOpenCLInstances,
+    size: usize,
+) -> Result<Vec<u8>, OpenCLEncodeError> {
     let mut return_code: i32 = 0;
 
-    let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instance, size, &mut return_code) };
+    let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instances, size, &mut return_code) };
 
     OpenCLEncodeError::from_return_code(return_code)?;
 
@@ -211,7 +222,9 @@ pub fn pinned_memory_alloc(instance: *const u8, size: usize) -> Result<Vec<u8>, 
 /// A std::mem::forget({vector}) call is required since the vector in Rust will
 /// be using memory freed in C.
 /// Call this function before calling the cleanup function
-pub fn pinned_memory_free(instances: *const u8) -> Result<(), OpenCLEncodeError> {
+pub fn pinned_memory_free(
+    instances: *const ffi::EncodeOpenCLInstances,
+) -> Result<(), OpenCLEncodeError> {
     let return_code = unsafe { ffi::sloth256_189_pinned_free(instances) };
 
     OpenCLEncodeError::from_return_code(return_code)?;
@@ -224,7 +237,7 @@ pub fn pinned_memory_free(instances: *const u8) -> Result<(), OpenCLEncodeError>
 /// Returns a pointer to the initialized instance which should be passed
 /// to the encode and cleanup functions.
 /// Calling this once at the start is sufficient.
-pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
+pub fn initialize() -> Result<*const ffi::EncodeOpenCLInstances, OpenCLEncodeError> {
     let mut return_code: i32 = 0;
     let instances = unsafe {
         ffi::sloth256_189_opencl_init(
@@ -248,7 +261,7 @@ pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
 pub fn determine_work_division_configuration(
     size: usize,
     layers: usize,
-    instances: *const u8,
+    instances: *const ffi::EncodeOpenCLInstances,
 ) -> Result<(), OpenCLEncodeError> {
     // Ensure that the given size is valid
     if size % (1024 * 4096) != 0 {
@@ -265,7 +278,7 @@ pub fn determine_work_division_configuration(
 
 /// Cleans up the resources allocated in the initialization of the encode kernel.
 /// Calling this once at the end is sufficient.
-pub fn cleanup(instances: *const u8) -> Result<(), OpenCLEncodeError> {
+pub fn cleanup(instances: *const ffi::EncodeOpenCLInstances) -> Result<(), OpenCLEncodeError> {
     let return_code = unsafe { ffi::sloth256_189_opencl_cleanup(instances) };
 
     OpenCLEncodeError::from_return_code(return_code)?;
@@ -281,7 +294,7 @@ pub fn encode(
     pieces: &mut [u8],
     ivs: &[u8],
     layers: usize,
-    instances: *const u8,
+    instances: *const ffi::EncodeOpenCLInstances,
 ) -> Result<(), OpenCLEncodeError> {
     if pieces.len() % (1024 * 4096) != 0 {
         return Err(OpenCLEncodeError::InvalidPieces(pieces.len()));
