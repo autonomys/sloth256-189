@@ -1,9 +1,7 @@
 //! OpenCL implementation
 
+use std::borrow::Cow;
 use thiserror::Error;
-
-mod opencl_error_codes;
-use opencl_error_codes::get_opencl_error_string;
 
 /// OpenCL encoding errors
 #[derive(Debug, Error)]
@@ -21,13 +19,115 @@ pub enum OpenCLEncodeError {
     InvalidPiecesIVs(usize, usize),
     /// OpenCL API returned an error code
     #[error("OpenCL API error: {0}")]
-    OpenCLError(String),
+    OpenCLError(Cow<'static, str>),
     /// OpenCL could not find any compatible device on the specified platform
     /// 2026 = No devices, 2027 = No Nvidia GPUs, 2028 = No AMD GPUs, 2029 = No Intel GPUs,
     /// 2035 = Pinned memory couldn't be allocated because no Nvidia GPU was found on the system
     /// 2036 = There was no previously allocated pinned memory
     #[error("No OpenCL compatible device could be found")]
     OpenCLDeviceNotFound(i32),
+}
+
+impl OpenCLEncodeError {
+    /// Returns `Ok` in case code is not an error
+    fn from_return_code(return_code: i32) -> Result<(), Self> {
+        let error_string = match return_code {
+            0 => {
+                // No error
+                return Ok(());
+            }
+
+            // runtime errors
+            -1 => "CL_DEVICE_NOT_FOUND".into(),
+            -2 => "CL_DEVICE_NOT_AVAILABLE".into(),
+            -3 => "CL_COMPILER_NOT_AVAILABLE".into(),
+            -4 => "CL_MEM_OBJECT_ALLOCATION_FAILURE".into(),
+            -5 => "CL_OUT_OF_RESOURCES".into(),
+            -6 => "CL_OUT_OF_HOST_MEMORY".into(),
+            -7 => "CL_PROFILING_INFO_NOT_AVAILABLE".into(),
+            -8 => "CL_MEM_COPY_OVERLAP".into(),
+            -9 => "CL_IMAGE_FORMAT_MISMATCH".into(),
+            -10 => "CL_IMAGE_FORMAT_NOT_SUPPORTED".into(),
+            -11 => "CL_BUILD_PROGRAM_FAILURE".into(),
+            -12 => "CL_MAP_FAILURE".into(),
+            -13 => "CL_MISALIGNED_SUB_BUFFER_OFFSET".into(),
+            -14 => "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST ".into(),
+            -15 => "CL_COMPILE_PROGRAM_FAILURE".into(),
+            -16 => "CL_LINKER_NOT_AVAILABLE".into(),
+            -17 => "CL_LINK_PROGRAM_FAILURE".into(),
+            -18 => "CL_DEVICE_PARTITION_FAILED".into(),
+            -19 => "CL_KERNEL_ARG_INFO_NOT_AVAILABLE".into(),
+
+            // compile time errors
+            -30 => "CL_INVALID_VALUE".into(),
+            -31 => "CL_INVALID_DEVICE_TYPE".into(),
+            -32 => "CL_INVALID_PLATFORM".into(),
+            -33 => "CL_INVALID_DEVICE".into(),
+            -34 => "CL_INVALID_CONTEXT".into(),
+            -35 => "CL_INVALID_QUEUE_PROPERTIES".into(),
+            -36 => "CL_INVALID_COMMAND_QUEUE".into(),
+            -37 => "CL_INVALID_HOST_PTR".into(),
+            -38 => "CL_INVALID_MEM_OBJECT".into(),
+            -39 => "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR".into(),
+            -40 => "CL_INVALID_IMAGE_SIZE".into(),
+            -41 => "CL_INVALID_SAMPLER".into(),
+            -42 => "CL_INVALID_BINARY".into(),
+            -43 => "CL_INVALID_BUILD_OPTIONS".into(),
+            -44 => "CL_INVALID_PROGRAM".into(),
+            -45 => "CL_INVALID_PROGRAM_EXECUTABLE".into(),
+            -46 => "CL_INVALID_KERNEL_NAME".into(),
+            -47 => "CL_INVALID_KERNEL_DEFINITION".into(),
+            -48 => "CL_INVALID_KERNEL".into(),
+            -49 => "CL_INVALID_ARG_INDEX".into(),
+            -50 => "CL_INVALID_ARG_VALUE".into(),
+            -51 => "CL_INVALID_ARG_SIZE".into(),
+            -52 => "CL_INVALID_KERNEL_ARGS".into(),
+            -53 => "CL_INVALID_WORK_DIMENSION".into(),
+            -54 => "CL_INVALID_WORK_GROUP_SIZE".into(),
+            -55 => "CL_INVALID_WORK_ITEM_SIZE".into(),
+            -56 => "CL_INVALID_GLOBAL_OFFSET".into(),
+            -57 => "CL_INVALID_EVENT_WAIT_LIST".into(),
+            -58 => "CL_INVALID_EVENT".into(),
+            -59 => "CL_INVALID_OPERATION".into(),
+            -60 => "CL_INVALID_GL_OBJECT".into(),
+            -61 => "CL_INVALID_BUFFER_SIZE".into(),
+            -62 => "CL_INVALID_MIP_LEVEL".into(),
+            -63 => "CL_INVALID_GLOBAL_WORK_SIZE".into(),
+            -64 => "CL_INVALID_PROPERTY".into(),
+            -65 => "CL_INVALID_IMAGE_DESCRIPTOR".into(),
+            -66 => "CL_INVALID_COMPILER_OPTIONS".into(),
+            -67 => "CL_INVALID_LINKER_OPTIONS".into(),
+            -68 => "CL_INVALID_DEVICE_PARTITION_COUNT".into(),
+
+            // sloth256-189 encoding-specific errors
+            2026 => "SLOTH_NO_OPENCL_COMPATIBLE_GPUS".into(),
+            2027 => "SLOTH_NO_OPENCL_COMPATIBLE_NVIDIA_GPUS".into(),
+            2028 => "SLOTH_NO_OPENCL_COMPATIBLE_AMD_GPUS".into(),
+            2029 => "SLOTH_NO_OPENCL_COMPATIBLE_INTEL_GPUS".into(),
+
+            // Should never happen since the caller Rust
+            // function makes sure that there are more than 1024 pieces
+            2031 => "SLOTH_PIECES_NOT_MULTIPLE_OF_1024".into(),
+
+            // Pinned memory allocation fails if
+            // there's no OpenCL compatible Nvidia GPUs
+            2035 => "SLOTH_PINNED_MEMORY_ALLOCATION_FAILURE".into(),
+
+            // There was no pinned memory allocated previously
+            // so no memory to free
+            2036 => "SLOTH_NO_ALLOCATED_PINNED_MEMORY".into(),
+
+            // The work division between the CPU and the OpenCL compatible
+            // devices were not yet determined.
+            // Run the "determine_work_division_configuration" function before
+            // encoding.
+            2037 => "SLOTH_DEVICE_WORK_DIVISION_NOT_DETERMINED".into(),
+
+            code => format!("Unknown OpenCL error {}", code).into(),
+        };
+
+        Err(Self::OpenCLError(error_string))
+    }
 }
 
 // importing the functions from .c files
@@ -91,11 +191,7 @@ pub fn pinned_memory_alloc(instance: *const u8, size: usize) -> Result<Vec<u8>, 
 
     let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instance, size, &mut return_code) };
 
-    if return_code != 0 {
-        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
-            return_code,
-        )));
-    }
+    OpenCLEncodeError::from_return_code(return_code)?;
 
     let pointer_as_vec = unsafe { Vec::from_raw_parts(pointer, size, size) };
 
@@ -109,11 +205,7 @@ pub fn pinned_memory_alloc(instance: *const u8, size: usize) -> Result<Vec<u8>, 
 pub fn pinned_memory_free(instances: *const u8) -> Result<(), OpenCLEncodeError> {
     let return_code = unsafe { ffi::sloth256_189_pinned_free(instances) };
 
-    if return_code != 0 {
-        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
-            return_code,
-        )));
-    }
+    OpenCLEncodeError::from_return_code(return_code)?;
 
     return Ok(());
 }
@@ -149,11 +241,7 @@ pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
         )
     };
 
-    if return_code != 0 {
-        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
-            return_code,
-        )));
-    }
+    OpenCLEncodeError::from_return_code(return_code)?;
 
     return Ok(instances);
 }
@@ -175,11 +263,7 @@ pub fn determine_work_division_configuration(
     let return_code =
         unsafe { ffi::sloth256_189_opencl_determine_factors(size, layers, instances) };
 
-    if return_code != 0 {
-        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
-            return_code,
-        )));
-    }
+    OpenCLEncodeError::from_return_code(return_code)?;
 
     return Ok(());
 }
@@ -189,11 +273,7 @@ pub fn determine_work_division_configuration(
 pub fn cleanup(instances: *const u8) -> Result<(), OpenCLEncodeError> {
     let return_code = unsafe { ffi::sloth256_189_opencl_cleanup(instances) };
 
-    if return_code != 0 {
-        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
-            return_code,
-        )));
-    }
+    OpenCLEncodeError::from_return_code(return_code)?;
 
     return Ok(());
 }
@@ -231,11 +311,7 @@ pub fn encode(
         )
     };
 
-    if return_code != 0 {
-        return Err(OpenCLEncodeError::OpenCLError(get_opencl_error_string(
-            return_code,
-        )));
-    }
+    OpenCLEncodeError::from_return_code(return_code)?;
 
     return Ok(());
 }
