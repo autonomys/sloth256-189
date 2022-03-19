@@ -1,7 +1,13 @@
 //! OpenCL implementation
 
 use std::borrow::Cow;
+use std::os::raw::c_char;
 use thiserror::Error;
+
+const ENCODE_CL: &str = concat!(include_str!("encode.cl"), "\0");
+const NVIDIA_SPECIFIC_CL: &str = concat!(include_str!("nvidia_specific.cl"), "\0");
+const MOD256_189_CU: &str = concat!(include_str!("mod256-189.cu"), "\0");
+const NON_NVIDIA_CL: &str = concat!(include_str!("non_nvidia.cl"), "\0");
 
 /// OpenCL encoding errors
 #[derive(Debug, Error)]
@@ -132,6 +138,8 @@ impl OpenCLEncodeError {
 
 // importing the functions from .c files
 mod ffi {
+    use std::os::raw::c_char;
+
     extern "C" {
         pub(super) fn sloth256_189_opencl_batch_encode(
             inout: *mut u8,
@@ -143,10 +151,10 @@ mod ffi {
 
         pub(super) fn sloth256_189_opencl_init(
             error: &mut i32,
-            encode_cl: *const i8,
-            nvidia_specific_cl: *const i8,
-            mod256_189_cu: *const i8,
-            non_nvidia_cl: *const i8,
+            encode_cl: *const c_char,
+            nvidia_specific_cl: *const c_char,
+            mod256_189_cu: *const c_char,
+            non_nvidia_cl: *const c_char,
         ) -> *const u8;
 
         pub(super) fn sloth256_189_opencl_determine_factors(
@@ -173,8 +181,9 @@ mod ffi {
 pub fn pinned_memory_alloc_supported(instance: *const u8) -> bool {
     unsafe { ffi::sloth256_189_pinned_alloc_supported(instance) }
 }
+
 /// Allocate pinned and aligned host memory. This makes memory copy operations on NVIDIA GPUs faster
-/// and allignment is required for zero-copy buffers for Intel integrated graphics devices
+/// and alignment is required for zero-copy buffers for Intel integrated graphics devices
 /// Call this function after calling the init function
 /// ///
 /// Unfortunately, when allocating pinned memory with OpenCL, a device buffer is also created
@@ -216,28 +225,14 @@ pub fn pinned_memory_free(instances: *const u8) -> Result<(), OpenCLEncodeError>
 /// to the encode and cleanup functions.
 /// Calling this once at the start is sufficient.
 pub fn initialize() -> Result<*const u8, OpenCLEncodeError> {
-    let encode_cl = include_bytes!("encode.cl");
-    let nvidia_specific_cl = include_bytes!("nvidia_specific.cl");
-    let mod256_189_cu = include_bytes!("mod256-189.cu");
-    let non_nvidia_cl = include_bytes!("non_nvidia.cl");
-
-    let encode_cl_str = String::from_utf8_lossy(encode_cl).to_string() + &"\0".to_string();
-
-    let nvidia_specific_cl_str =
-        String::from_utf8_lossy(nvidia_specific_cl).to_string() + &"\0".to_string();
-
-    let mod256_189_cu_str = String::from_utf8_lossy(mod256_189_cu).to_string() + &"\0".to_string();
-
-    let non_nvidia_cl_str = String::from_utf8_lossy(non_nvidia_cl).to_string() + &"\0".to_string();
-
     let mut return_code: i32 = 0;
     let instances = unsafe {
         ffi::sloth256_189_opencl_init(
             &mut return_code,
-            encode_cl_str.as_ptr() as *const i8,
-            nvidia_specific_cl_str.as_ptr() as *const i8,
-            mod256_189_cu_str.as_ptr() as *const i8,
-            non_nvidia_cl_str.as_ptr() as *const i8,
+            ENCODE_CL.as_ptr() as *const c_char,
+            NVIDIA_SPECIFIC_CL.as_ptr() as *const c_char,
+            MOD256_189_CU.as_ptr() as *const c_char,
+            NON_NVIDIA_CL.as_ptr() as *const c_char,
         )
     };
 
