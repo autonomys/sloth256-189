@@ -1,6 +1,7 @@
 //! OpenCL implementation
 
 use std::borrow::Cow;
+use std::mem;
 use std::os::raw::c_char;
 use thiserror::Error;
 
@@ -12,13 +13,11 @@ const NON_NVIDIA_CL: &str = concat!(include_str!("non_nvidia.cl"), "\0");
 /// OpenCL encoding errors
 #[derive(Debug, Error)]
 pub enum OpenCLEncodeError {
-    /// Pieces argument is invalid, must be multiple of 1024 4096-bytes pieces
-    #[error(
-        "Pieces argument is invalid, must be multiple of 1024 4096-bytes pieces, {0} bytes given"
-    )]
+    /// Pieces argument is invalid, must be multiple of 4096-bytes pieces
+    #[error("Pieces argument is invalid, must be multiple of 4096-bytes pieces, {0} bytes given")]
     InvalidPieces(usize),
-    /// IVs argument is invalid, must be multiple of 1024 32-bytes IVs
-    #[error("IVs argument is invalid, must be multiple of 1024 32-bytes pieces, {0} bytes given")]
+    /// IVs argument is invalid, must be multiple of 32-bytes IVs
+    #[error("IVs argument is invalid, must be multiple of 32-bytes pieces, {0} bytes given")]
     InvalidIVs(usize),
     /// Number of pieces should be the same as number of IVs
     #[error("Number of pieces should be the same as number of IVs, {0} pieces and {1} IVs given")]
@@ -230,6 +229,161 @@ pub fn pinned_memory_free(
     OpenCLEncodeError::from_return_code(return_code)?;
 
     return Ok(());
+}
+
+/// Batch to be encoded on GPU
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct OpenClBatch {
+    /// Batch size (of pieces) in bytes (should be multiple of 4096)
+    size: usize,
+    /// Number of encoding layers
+    layers: usize,
+}
+
+/// OpenCL codec
+#[derive(Debug)]
+pub struct OpenClEncoder {
+    batch: Option<OpenClBatch>,
+    instances: *const ffi::EncodeOpenCLInstances,
+}
+
+impl OpenClEncoder {
+    /// Create new OpenCL codec instance for batch encoding on GPU.
+    ///
+    /// Batch information can be provided upfront to determine load distribution and do necessary
+    /// memory allocation.
+    pub fn new(batch: Option<OpenClBatch>) -> Result<Self, OpenCLEncodeError> {
+        if let Some(batch) = &batch {
+            // Ensure that the given size is valid
+            if batch.size % 4096 != 0 {
+                return Err(OpenCLEncodeError::InvalidPieces(batch.size));
+            }
+        }
+
+        let mut return_code: i32 = 0;
+        let instances = unsafe {
+            ffi::sloth256_189_opencl_init(
+                &mut return_code,
+                ENCODE_CL.as_ptr() as *const c_char,
+                NVIDIA_SPECIFIC_CL.as_ptr() as *const c_char,
+                MOD256_189_CU.as_ptr() as *const c_char,
+                NON_NVIDIA_CL.as_ptr() as *const c_char,
+            )
+        };
+
+        OpenCLEncodeError::from_return_code(return_code)?;
+
+        let mut codec = Self {
+            batch: None,
+            instances,
+        };
+
+        if let Some(batch) = batch {
+            codec.recalculate_work_division_configuration(batch)?;
+            // TODO: Memory allocation
+        }
+
+        Ok(codec)
+    }
+
+    // TODO: Memory allocation
+    /// Sequentially encodes a batch of pieces using OpenCL.
+    ///
+    /// NOTE: This encode function works on batches of pieces and IVs.
+    ///
+    /// For smaller batches or encoding of individual pieces use CPU implementation.
+    pub fn encode(
+        &mut self,
+        pieces: &mut [u8],
+        ivs: &[u8],
+        layers: usize,
+        instances: *const ffi::EncodeOpenCLInstances,
+    ) -> Result<(), OpenCLEncodeError> {
+        if pieces.len() % 4096 != 0 {
+            return Err(OpenCLEncodeError::InvalidPieces(pieces.len()));
+        }
+
+        if ivs.len() % 32 != 0 {
+            return Err(OpenCLEncodeError::InvalidIVs(ivs.len()));
+        }
+
+        if pieces.len() / 4096 != ivs.len() / 32 {
+            return Err(OpenCLEncodeError::InvalidPiecesIVs(
+                pieces.len() / 4096,
+                ivs.len() / 32,
+            ));
+        }
+
+        let batch = OpenClBatch {
+            size: pieces.len() / 4096,
+            layers,
+        };
+
+        if self.batch != Some(batch) {
+            self.recalculate_work_division_configuration(batch)?;
+        }
+
+        let return_code = unsafe {
+            ffi::sloth256_189_opencl_batch_encode(
+                pieces.as_mut_ptr(),
+                pieces.len(),
+                ivs.as_ptr(),
+                layers,
+                instances,
+            )
+        };
+
+        OpenCLEncodeError::from_return_code(return_code)?;
+
+        return Ok(());
+    }
+
+    /// Cleans up the resources allocated in the initialization of the encode kernel.
+    ///
+    /// Prefer this over `drop()` because `drop()` will panic in case of error.
+    ///
+    /// NOTE: In case error is returned, memory used for kernel initialization might be leaked.
+    pub fn destroy(self) -> Result<(), OpenCLEncodeError> {
+        let return_code = unsafe { ffi::sloth256_189_opencl_cleanup(self.instances) };
+
+        // We don't want to run `Drop::drop` after this
+        mem::forget(self);
+
+        OpenCLEncodeError::from_return_code(return_code)
+    }
+
+    /// Determine the work division configuration between the CPU and the OpenCL compatible
+    /// devices for a given size and number of layers.
+    ///
+    /// Call this function after initialization and if the encoding size or number of layers
+    /// change.
+    fn recalculate_work_division_configuration(
+        &mut self,
+        batch: OpenClBatch,
+    ) -> Result<(), OpenCLEncodeError> {
+        // Ensure that the given size is valid
+        if batch.size % 4096 != 0 {
+            return Err(OpenCLEncodeError::InvalidPieces(batch.size));
+        }
+
+        let return_code = unsafe {
+            ffi::sloth256_189_opencl_determine_factors(batch.size, batch.layers, self.instances)
+        };
+
+        OpenCLEncodeError::from_return_code(return_code)?;
+
+        self.batch.replace(batch);
+
+        return Ok(());
+    }
+}
+
+impl Drop for OpenClEncoder {
+    fn drop(&mut self) {
+        let return_code = unsafe { ffi::sloth256_189_opencl_cleanup(self.instances) };
+
+        OpenCLEncodeError::from_return_code(return_code).unwrap();
+    }
 }
 
 /// Initializes the encode kernel for a given device. In essence performs
