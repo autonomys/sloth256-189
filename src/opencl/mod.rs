@@ -140,7 +140,7 @@ mod ffi {
     use std::os::raw::{c_char, c_int, c_uchar};
 
     #[repr(C)]
-    pub struct EncodeOpenCLInstances {
+    pub(super) struct EncodeOpenCLInstances {
         _data: [u8; 0],
     }
 
@@ -167,79 +167,82 @@ mod ffi {
             instances: *const EncodeOpenCLInstances,
         ) -> c_int;
 
-        pub(super) fn sloth256_189_pinned_alloc_supported(
-            instances: *const EncodeOpenCLInstances,
-        ) -> bool;
-
-        pub(super) fn sloth256_189_pinned_alloc(
-            instances: *const EncodeOpenCLInstances,
-            size: usize,
-            error: &mut c_int,
-        ) -> *mut u8;
-
-        pub(super) fn sloth256_189_pinned_free(instances: *const EncodeOpenCLInstances) -> c_int;
+        // TODO: Pinned memory allocation is not exposed; check performance implications before adding back
+        // pub(super) fn sloth256_189_pinned_alloc_supported(
+        //     instances: *const EncodeOpenCLInstances,
+        // ) -> bool;
+        //
+        // pub(super) fn sloth256_189_pinned_alloc(
+        //     instances: *const EncodeOpenCLInstances,
+        //     size: usize,
+        //     error: &mut c_int,
+        // ) -> *mut u8;
+        //
+        // pub(super) fn sloth256_189_pinned_free(instances: *const EncodeOpenCLInstances) -> c_int;
 
         pub(super) fn sloth256_189_opencl_cleanup(instances: *const EncodeOpenCLInstances)
             -> c_int;
     }
 }
 
-/// Check whether pinned memory is supported
-pub fn pinned_memory_alloc_supported(instance: *const ffi::EncodeOpenCLInstances) -> bool {
-    unsafe { ffi::sloth256_189_pinned_alloc_supported(instance) }
-}
-
-/// Allocate pinned and aligned host memory. This makes memory copy operations on NVIDIA GPUs faster
-/// and alignment is required for zero-copy buffers for Intel integrated graphics devices
-/// Call this function after calling the init function
-/// ///
-/// Unfortunately, when allocating pinned memory with OpenCL, a device buffer is also created
-/// in addition to the buffer created on the host. Then, during the encoding process, yet another
-/// buffer is created to write the contents of piece data. Using pinned memory without creating
-/// another buffer during the encode process and writing the contents of piece data to the device
-/// buffer created initially when allocating pinned memory is possible, without any wasted device
-/// memory, but it results in an overall slower encoding time since there's extra memory allocation.
-/// See: https://stackoverflow.com/questions/42011504/why-does-clcreatebuffer-with-cl-mem-alloc-host-ptr-use-discrete-device-memory
-///
-/// Therefore we can only use around 1/3 of the available amount of device memory at maximum.
-pub fn pinned_memory_alloc(
-    instances: *const ffi::EncodeOpenCLInstances,
-    size: usize,
-) -> Result<Vec<u8>, OpenCLEncodeError> {
-    let mut return_code: i32 = 0;
-
-    let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instances, size, &mut return_code) };
-
-    OpenCLEncodeError::from_return_code(return_code)?;
-
-    let pointer_as_vec = unsafe { Vec::from_raw_parts(pointer, size, size) };
-
-    return Ok(pointer_as_vec);
-}
-
-/// Free the pinned memory allocated with pinned_memory_alloc function above.
-/// A std::mem::forget({vector}) call is required since the vector in Rust will
-/// be using memory freed in C.
-/// Call this function before calling the cleanup function
-pub fn pinned_memory_free(
-    instances: *const ffi::EncodeOpenCLInstances,
-) -> Result<(), OpenCLEncodeError> {
-    let return_code = unsafe { ffi::sloth256_189_pinned_free(instances) };
-
-    OpenCLEncodeError::from_return_code(return_code)?;
-
-    return Ok(());
-}
+// TODO: Pinned memory allocation is not exposed; check performance implications before adding back
+// /// Check whether pinned memory is supported
+// pub fn pinned_memory_alloc_supported(instance: *const ffi::EncodeOpenCLInstances) -> bool {
+//     unsafe { ffi::sloth256_189_pinned_alloc_supported(instance) }
+// }
+//
+// /// Allocate pinned and aligned host memory. This makes memory copy operations on NVIDIA GPUs faster
+// /// and alignment is required for zero-copy buffers for Intel integrated graphics devices
+// /// Call this function after calling the init function
+// /// ///
+// /// Unfortunately, when allocating pinned memory with OpenCL, a device buffer is also created
+// /// in addition to the buffer created on the host. Then, during the encoding process, yet another
+// /// buffer is created to write the contents of piece data. Using pinned memory without creating
+// /// another buffer during the encode process and writing the contents of piece data to the device
+// /// buffer created initially when allocating pinned memory is possible, without any wasted device
+// /// memory, but it results in an overall slower encoding time since there's extra memory allocation.
+// /// See: https://stackoverflow.com/questions/42011504/why-does-clcreatebuffer-with-cl-mem-alloc-host-ptr-use-discrete-device-memory
+// ///
+// /// Therefore we can only use around 1/3 of the available amount of device memory at maximum.
+// pub fn pinned_memory_alloc(
+//     instances: *const ffi::EncodeOpenCLInstances,
+//     size: usize,
+// ) -> Result<Vec<u8>, OpenCLEncodeError> {
+//     let mut return_code: i32 = 0;
+//
+//     let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instances, size, &mut return_code) };
+//
+//     OpenCLEncodeError::from_return_code(return_code)?;
+//
+//     let pointer_as_vec = unsafe { Vec::from_raw_parts(pointer, size, size) };
+//
+//     return Ok(pointer_as_vec);
+// }
+//
+// /// Free the pinned memory allocated with pinned_memory_alloc function above.
+// /// A std::mem::forget({vector}) call is required since the vector in Rust will
+// /// be using memory freed in C.
+// /// Call this function before calling the cleanup function
+// pub fn pinned_memory_free(
+//     instances: *const ffi::EncodeOpenCLInstances,
+// ) -> Result<(), OpenCLEncodeError> {
+//     let return_code = unsafe { ffi::sloth256_189_pinned_free(instances) };
+//
+//     OpenCLEncodeError::from_return_code(return_code)?;
+//
+//     return Ok(());
+// }
 
 /// Batch to be encoded on GPU
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct OpenClBatch {
     /// Batch size (of pieces) in bytes (should be multiple of 4096)
-    size: usize,
+    pub size: usize,
     /// Number of encoding layers
-    layers: usize,
+    pub layers: usize,
 }
 
+// TODO: Pinned memory allocation is not exposed; check performance implications before adding back
 /// OpenCL codec
 #[derive(Debug)]
 pub struct OpenClEncoder {
@@ -273,20 +276,20 @@ impl OpenClEncoder {
 
         OpenCLEncodeError::from_return_code(return_code)?;
 
-        let mut codec = Self {
+        let mut encoder = Self {
             batch: None,
             instances,
         };
 
         if let Some(batch) = batch {
-            codec.recalculate_work_division_configuration(batch)?;
-            // TODO: Memory allocation
+            encoder.recalculate_work_division_configuration(batch)?;
+
+            encoder.batch.replace(batch);
         }
 
-        Ok(codec)
+        Ok(encoder)
     }
 
-    // TODO: Memory allocation
     /// Sequentially encodes a batch of pieces using OpenCL.
     ///
     /// NOTE: This encode function works on batches of pieces and IVs.
@@ -297,7 +300,6 @@ impl OpenClEncoder {
         pieces: &mut [u8],
         ivs: &[u8],
         layers: usize,
-        instances: *const ffi::EncodeOpenCLInstances,
     ) -> Result<(), OpenCLEncodeError> {
         if pieces.len() % 4096 != 0 {
             return Err(OpenCLEncodeError::InvalidPieces(pieces.len()));
@@ -329,13 +331,11 @@ impl OpenClEncoder {
                 pieces.len(),
                 ivs.as_ptr(),
                 layers,
-                instances,
+                self.instances,
             )
         };
 
-        OpenCLEncodeError::from_return_code(return_code)?;
-
-        return Ok(());
+        OpenCLEncodeError::from_return_code(return_code)
     }
 
     /// Cleans up the resources allocated in the initialization of the encode kernel.
@@ -370,11 +370,7 @@ impl OpenClEncoder {
             ffi::sloth256_189_opencl_determine_factors(batch.size, batch.layers, self.instances)
         };
 
-        OpenCLEncodeError::from_return_code(return_code)?;
-
-        self.batch.replace(batch);
-
-        return Ok(());
+        OpenCLEncodeError::from_return_code(return_code)
     }
 }
 
@@ -384,96 +380,4 @@ impl Drop for OpenClEncoder {
 
         OpenCLEncodeError::from_return_code(return_code).unwrap();
     }
-}
-
-/// Initializes the encode kernel for a given device. In essence performs
-/// the tasks that must be done only once at the start.
-/// Returns a pointer to the initialized instance which should be passed
-/// to the encode and cleanup functions.
-/// Calling this once at the start is sufficient.
-pub fn initialize() -> Result<*const ffi::EncodeOpenCLInstances, OpenCLEncodeError> {
-    let mut return_code: i32 = 0;
-    let instances = unsafe {
-        ffi::sloth256_189_opencl_init(
-            &mut return_code,
-            ENCODE_CL.as_ptr() as *const c_char,
-            NVIDIA_SPECIFIC_CL.as_ptr() as *const c_char,
-            MOD256_189_CU.as_ptr() as *const c_char,
-            NON_NVIDIA_CL.as_ptr() as *const c_char,
-        )
-    };
-
-    OpenCLEncodeError::from_return_code(return_code)?;
-
-    return Ok(instances);
-}
-
-/// Determine the work division configuration between the CPU and the OpenCL compatible
-/// devices for a given size and number of layers.
-/// Call this function after initialization and if the encoding size or number of layers
-/// change.
-pub fn determine_work_division_configuration(
-    size: usize,
-    layers: usize,
-    instances: *const ffi::EncodeOpenCLInstances,
-) -> Result<(), OpenCLEncodeError> {
-    // Ensure that the given size is valid
-    if size % (1024 * 4096) != 0 {
-        return Err(OpenCLEncodeError::InvalidPieces(size));
-    }
-
-    let return_code =
-        unsafe { ffi::sloth256_189_opencl_determine_factors(size, layers, instances) };
-
-    OpenCLEncodeError::from_return_code(return_code)?;
-
-    return Ok(());
-}
-
-/// Cleans up the resources allocated in the initialization of the encode kernel.
-/// Calling this once at the end is sufficient.
-pub fn cleanup(instances: *const ffi::EncodeOpenCLInstances) -> Result<(), OpenCLEncodeError> {
-    let return_code = unsafe { ffi::sloth256_189_opencl_cleanup(instances) };
-
-    OpenCLEncodeError::from_return_code(return_code)?;
-
-    return Ok(());
-}
-
-/// Sequentially encodes a batch of pieces using OpenCL.
-///
-/// NOTE: This encode function works on batches of pieces and IVs that should be multiple of 1024.
-/// For smaller batches or encoding of individual pieces use CPU implementation.
-pub fn encode(
-    pieces: &mut [u8],
-    ivs: &[u8],
-    layers: usize,
-    instances: *const ffi::EncodeOpenCLInstances,
-) -> Result<(), OpenCLEncodeError> {
-    if pieces.len() % (1024 * 4096) != 0 {
-        return Err(OpenCLEncodeError::InvalidPieces(pieces.len()));
-    }
-    if ivs.len() % (1024 * 32) != 0 {
-        return Err(OpenCLEncodeError::InvalidIVs(ivs.len()));
-    }
-    if pieces.len() / 4096 != ivs.len() / 32 {
-        return Err(OpenCLEncodeError::InvalidPiecesIVs(
-            pieces.len() / 4096,
-            ivs.len() / 32,
-        ));
-    }
-
-    let return_code = unsafe {
-        ffi::sloth256_189_opencl_batch_encode(
-            pieces.as_mut_ptr(),
-            pieces.len(),
-            ivs.as_ptr(),
-            layers,
-            instances,
-        )
-    };
-
-    OpenCLEncodeError::from_return_code(return_code)?;
-
-    return Ok(());
 }
