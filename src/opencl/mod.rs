@@ -1,4 +1,44 @@
-//! OpenCL implementation
+//! Universal OpenCL GPU implementation, supports cards both AMD, Nvidia and Intel.
+//!
+//! It supports all major GPU vendors, including support for multiple GPU, including support for
+//! multiple GPU vendors on the same machine at the same time.
+//!
+//! ### Linux support
+//! In all cases for OpenCL support to build (not needed in runtime), OpenCL header files and
+//! library are necessary, can be installed on Ubuntu as follows:
+//! ```bash
+//! sudo apt-get install ocl-icd-opencl-dev
+//! ```
+//!
+//! #### AMD
+//! Mesa OpenCL support is not compatible for AMD GPUs, you need to install ROCm-based OpenCL ICD.
+//!
+//! This can be done by downloading downloading and installing AMD driver installer from
+//! <https://www.amd.com/en/support>, installing will look something like this:
+//! ```bash
+//! sudo dpkg -i amdgpu-install_21.50.2.50002-1_all.deb
+//! ```
+//! After which you should have `amdgpu-install` command, use it to install OpenCL ICD as follows:
+//! ```bash
+//! sudo amdgpu-install --no-dkms --usecase=opencl
+//! ```
+//!
+//! ^ will only install OpenCL ICD and will keep Open Source kernel graphics driver as it was.
+//!
+//! Removal of all of the above is possible with:
+//! ```bash
+//! sudo amdgpu-install --uninstall
+//! sudo apt-get purge amdgpu-install
+//! ```
+//!
+//! #### Nvidia
+//! Proprietary driver with CUDA toolchain is needed, Open Source drivers are not supported.
+//!
+//! #### Intel
+//! Thankfully, for Intel GPU Open Source ICD works great:
+//! ```bash
+//! sudo apt-get install intel-opencl-icd
+//! ```
 
 use std::borrow::Cow;
 use std::mem;
