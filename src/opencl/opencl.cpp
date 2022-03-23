@@ -246,10 +246,10 @@ cl_int sloth256_189_opencl_determine_factors(size_t size,
 // to either Nvidia, AMD or Intel.
 extern "C"
 EncodeOpenCLInstances* sloth256_189_opencl_init(cl_int& err,
-                                                char* encode_cl,
-                                                char* nvidia_specific_cl,
-                                                char* mod256_189_cu,
-                                                char* non_nvidia_cl) {
+                                                const char* encode_cl,
+                                                const char* nvidia_specific_cl,
+                                                const char* mod256_189_cu,
+                                                const char* non_nvidia_cl) {
 
     EncodeOpenCLInstances* instances = (EncodeOpenCLInstances*)malloc(sizeof(EncodeOpenCLInstances));
 
