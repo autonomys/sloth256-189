@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use num_format::{Locale, ToFormattedString};
 use rand::Rng;
 use sloth256_189::opencl::{OpenClBatch, OpenClEncoder};
 use std::time::Duration;
@@ -31,9 +30,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function(
             format!(
                 "Encode-parallel/{} GB/{} pieces/{} layer(s)",
-                size,
-                NUM_PIECES.to_formatted_string(&Locale::en),
-                layers
+                size, NUM_PIECES, layers
             ),
             |b| {
                 let piece = random_bytes::<{ 4096 * NUM_PIECES }>();

@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use num_format::{Locale, ToFormattedString};
 use rand::Rng;
 use std::time::Duration;
 
@@ -20,11 +19,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let expanded_ivs = random_bytes::<{ 32 * NUM_PIECES }>();
 
     group.bench_function(
-        format!(
-            "Encode-parallel/{} GB/{} pieces",
-            size,
-            NUM_PIECES.to_formatted_string(&Locale::en)
-        ),
+        format!("Encode-parallel/{} GB/{} pieces", size, NUM_PIECES),
         |b| {
             b.iter_batched_ref(
                 || big_piece.clone(),
