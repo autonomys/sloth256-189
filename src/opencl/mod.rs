@@ -207,7 +207,8 @@ mod ffi {
             instances: *const EncodeOpenCLInstances,
         ) -> c_int;
 
-        // TODO: Pinned memory allocation is not exposed; check performance implications before adding back
+        // Pinned memory allocation is not exposed due to low performance improvement (1-2%) and
+        // API complexity
         // pub(super) fn sloth256_189_pinned_alloc_supported(
         //     instances: *const EncodeOpenCLInstances,
         // ) -> bool;
@@ -225,54 +226,6 @@ mod ffi {
     }
 }
 
-// TODO: Pinned memory allocation is not exposed; check performance implications before adding back
-// /// Check whether pinned memory is supported
-// pub fn pinned_memory_alloc_supported(instance: *const ffi::EncodeOpenCLInstances) -> bool {
-//     unsafe { ffi::sloth256_189_pinned_alloc_supported(instance) }
-// }
-//
-// /// Allocate pinned and aligned host memory. This makes memory copy operations on NVIDIA GPUs faster
-// /// and alignment is required for zero-copy buffers for Intel integrated graphics devices
-// /// Call this function after calling the init function
-// /// ///
-// /// Unfortunately, when allocating pinned memory with OpenCL, a device buffer is also created
-// /// in addition to the buffer created on the host. Then, during the encoding process, yet another
-// /// buffer is created to write the contents of piece data. Using pinned memory without creating
-// /// another buffer during the encode process and writing the contents of piece data to the device
-// /// buffer created initially when allocating pinned memory is possible, without any wasted device
-// /// memory, but it results in an overall slower encoding time since there's extra memory allocation.
-// /// See: https://stackoverflow.com/questions/42011504/why-does-clcreatebuffer-with-cl-mem-alloc-host-ptr-use-discrete-device-memory
-// ///
-// /// Therefore we can only use around 1/3 of the available amount of device memory at maximum.
-// pub fn pinned_memory_alloc(
-//     instances: *const ffi::EncodeOpenCLInstances,
-//     size: usize,
-// ) -> Result<Vec<u8>, OpenCLEncodeError> {
-//     let mut return_code: i32 = 0;
-//
-//     let pointer = unsafe { ffi::sloth256_189_pinned_alloc(instances, size, &mut return_code) };
-//
-//     OpenCLEncodeError::from_return_code(return_code)?;
-//
-//     let pointer_as_vec = unsafe { Vec::from_raw_parts(pointer, size, size) };
-//
-//     return Ok(pointer_as_vec);
-// }
-//
-// /// Free the pinned memory allocated with pinned_memory_alloc function above.
-// /// A std::mem::forget({vector}) call is required since the vector in Rust will
-// /// be using memory freed in C.
-// /// Call this function before calling the cleanup function
-// pub fn pinned_memory_free(
-//     instances: *const ffi::EncodeOpenCLInstances,
-// ) -> Result<(), OpenCLEncodeError> {
-//     let return_code = unsafe { ffi::sloth256_189_pinned_free(instances) };
-//
-//     OpenCLEncodeError::from_return_code(return_code)?;
-//
-//     return Ok(());
-// }
-
 /// Batch to be encoded on GPU
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct OpenClBatch {
@@ -282,7 +235,6 @@ pub struct OpenClBatch {
     pub layers: usize,
 }
 
-// TODO: Pinned memory allocation is not exposed; check performance implications before adding back
 /// OpenCL codec
 #[derive(Debug)]
 pub struct OpenClEncoder {
