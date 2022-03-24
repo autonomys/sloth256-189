@@ -10,11 +10,12 @@
 This is an adaptation of [SLOTH](https://eprint.iacr.org/2015/366) (slow-timed hash function) into a time-asymmetric
 permutation using a standard CBC block cipher.
 
-This library consists of 2 major implementations:
+This library consists of 3 major implementations:
 - CPU
-- CUDA
+- CUDA (requires `cuda` feature to be enabled)
+- OpenCL (requires `opencl` feature to be enabled)
 
----
+### CPU
 
 CPU Implementation contains 3 flavors:
 * optimized assembly-assisted implementation for x86-64 processors with ADX ISA extension (Linux, macOS and Windows)
@@ -23,12 +24,18 @@ CPU Implementation contains 3 flavors:
 
 For more details, [README.md](src/cpu/README.md) under `src/cpu` can be referred.
 
----
+### CUDA
 
 CUDA implementation is heavily using low-level PTX code to achieve the maximum performance.
 
-Details of the CUDA implementation can be found in 
-[README.md](src/cuda/README.md) under `src/cuda`.
+Details of the CUDA implementation can be found in [README.md](src/cuda/README.md) under `src/cuda`.
+
+### OpenCL
+
+OpenCL is a universal implementation that supports AMD (ROCm), Nvidia (CUDA) and Intel GPUs, including support for
+multiple GPU, including support for multiple GPU vendors on the same machine at the same time.
+
+Details of the OpenCL implementation can be found in [mod.rs](src/opencl/mod.rs) under `src/opencl`.
 
 ### License
 
