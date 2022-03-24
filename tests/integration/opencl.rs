@@ -15,7 +15,7 @@ fn random_bytes_vec<const BYTES: usize>() -> Vec<u8> {
 fn test_random_piece() {
     let expanded_iv = utils::random_bytes::<32>();
     let piece = utils::random_bytes::<4096>();
-    let layers = 4096 / 32;
+    let layers = 8;
 
     let mut encodings = Vec::with_capacity(1024 * 4096);
     for _ in 0..1024 {

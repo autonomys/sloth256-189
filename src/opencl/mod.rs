@@ -309,7 +309,7 @@ impl OpenClEncoder {
         }
 
         let batch = OpenClBatch {
-            size: pieces.len() / 4096,
+            size: pieces.len(),
             layers,
         };
 
