@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
-use num_format::{Locale, ToFormattedString};
 use rand::Rng;
 use sloth256_189::opencl::{OpenClBatch, OpenClEncoder};
 use std::time::Duration;
@@ -9,11 +8,6 @@ fn random_bytes<const BYTES: usize>() -> Vec<u8> {
     rand::thread_rng().fill(&mut bytes[..]);
     bytes
 }
-
-// TODO: Pinned memory allocation is not exposed; check performance implications before adding back
-// fn random_bytes_inplace<const BYTES: usize>(vec: &mut Vec<u8>) {
-//     rand::thread_rng().fill(&mut vec[..]);
-// }
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("opencl");
@@ -36,9 +30,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
         group.bench_function(
             format!(
                 "Encode-parallel/{} GB/{} pieces/{} layer(s)",
-                size,
-                NUM_PIECES.to_formatted_string(&Locale::en),
-                layers
+                size, NUM_PIECES, layers
             ),
             |b| {
                 let piece = random_bytes::<{ 4096 * NUM_PIECES }>();
@@ -50,36 +42,6 @@ pub fn criterion_benchmark(c: &mut Criterion) {
                 );
             },
         );
-
-        // TODO: Pinned memory allocation is not exposed; check performance implications before adding back
-        // group.bench_function(
-        //     format!(
-        //         "Encode-parallel-pinned/{} GB/{} pieces/{} layer(s)",
-        //         size,
-        //         NUM_PIECES.to_formatted_string(&Locale::en),
-        //         layers
-        //     ),
-        //     |b| {
-        //         b.iter_custom(|iters| {
-        //             let mut piece =
-        //                 sloth256_189::opencl::pinned_memory_alloc(instances, 4096 * NUM_PIECES)
-        //                     .unwrap();
-        //             random_bytes_inplace::<{ 4096 * NUM_PIECES }>(&mut piece);
-        //
-        //             let start = Instant::now();
-        //             for _ in 0..iters {
-        //                 sloth256_189::opencl::encode(&mut piece, &expanded_ivs, layers, instances)
-        //                     .unwrap();
-        //             }
-        //             let elapsed = start.elapsed();
-        //
-        //             sloth256_189::opencl::pinned_memory_free(instances).unwrap();
-        //             std::mem::forget(piece);
-        //
-        //             elapsed
-        //         })
-        //     },
-        // );
 
         layers = layers * 2;
     }
