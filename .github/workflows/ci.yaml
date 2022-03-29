@@ -11,9 +11,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - macos-10.15
           - macos-11
-          - windows-2019
           - windows-2022
         rust:
           - stable
@@ -57,12 +55,12 @@ jobs:
         with:
           command: test
           args: --verbose
-  cuda:
+
+  cuda-opencl:
     strategy:
       matrix:
         os:
           - ubuntu-20.04
-          - windows-2019
           - windows-2022
         rust:
           - stable
@@ -91,6 +89,11 @@ jobs:
         uses: Jimver/cuda-toolkit@v0.2.5
         if: runner.os == 'Linux' || runner.os == 'Windows'
 
+      - name: OpenCL headers on Linux
+        run: |
+          sudo apt-get install -y --no-install-recommends opencl-headers
+        if: runner.os == 'Linux'
+
       - name: Configure cache
         uses: actions/cache@v2
         with:
@@ -104,11 +107,11 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --features=cuda -- -D warnings
+          args: --features=cuda,opencl -- -D warnings
 
       # We can't run CUDA tests in CI yet, so just test the build for now
       - name: cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all --features=cuda --verbose
+          args: --all --features=cuda,opencl --verbose
