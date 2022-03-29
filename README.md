@@ -33,7 +33,7 @@ Details of the CUDA implementation can be found in [README.md](src/cuda/README.m
 ### OpenCL
 
 OpenCL is a universal implementation that supports AMD (ROCm), Nvidia (CUDA) and Intel GPUs, including support for
-multiple GPU, including support for multiple GPU vendors on the same machine at the same time.
+multiple GPU vendors on the same machine at the same time.
 
 Details of the OpenCL implementation can be found in [mod.rs](src/opencl/mod.rs) under `src/opencl`.
 
