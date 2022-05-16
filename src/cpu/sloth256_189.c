@@ -1,5 +1,10 @@
 #ifndef __OPENCL_C_VERSION__
+#ifdef __wasm__
+#include <stdint.h>
+typedef __SIZE_TYPE__ size_t;
+#else
 #include <stdlib.h>
+#endif
 
 #if defined(__GNUC__)
 # ifndef alloca
@@ -54,7 +59,9 @@ typedef const void *uptr_t;
 # endif
 #endif
 
-#if defined(_LP64) || __SIZEOF_LONG__-0==8
+#if __wasm__
+typedef uint64_t limb_t;
+#elif defined(_LP64) || __SIZEOF_LONG__-0==8
 typedef unsigned long limb_t;
 #elif defined(_WIN64) || \
       defined(__x86_64__) || defined(__aarch64__) || \
@@ -261,7 +268,10 @@ static bool_t xor_n_check_mod_256_189(vec256 out, const vec256 a,
 #if (__SIZEOF_INT128__-0==16 || __SIZEOF_LONG_LONG__-0==16) && \
     !defined(__CUDA_ARCH__)
 
-#if __SIZEOF_LONG_LONG__-0==16
+#if __wasm__
+typedef __uint128_t u128;
+typedef uint64_t u64;
+#elif __SIZEOF_LONG_LONG__-0==16
 typedef unsigned long long u128;
 typedef unsigned long u64;
 #else

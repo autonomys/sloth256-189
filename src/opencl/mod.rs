@@ -40,6 +40,10 @@
 //! sudo apt-get install intel-opencl-icd
 //! ```
 
+// Including for linking purposes
+#[allow(unused_imports)]
+use openmp_sys;
+
 use std::borrow::Cow;
 use std::mem;
 use std::os::raw::c_char;

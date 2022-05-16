@@ -1,27 +1,22 @@
 use std::env;
 use std::path::PathBuf;
 
-#[cfg(target_env = "msvc")]
-fn get_assembly_file() -> PathBuf {
-    PathBuf::from("src/cpu/win64/mod256-189-x86_64.asm")
-}
-
-#[cfg(not(target_env = "msvc"))]
-fn get_assembly_file() -> PathBuf {
-    PathBuf::from("src/cpu/assembly.S")
-}
-
 fn main() {
-    if std::env::var("DOCS_RS").is_ok() {
+    if env::var("DOCS_RS").is_ok() {
         // Skip everything when building docs on docs.rs
         return;
     }
 
+    // Account for cross-compilation
+    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
+    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap();
+    let target_family = env::var("CARGO_CFG_TARGET_FAMILY").unwrap();
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
+
     // Set CC environment variable to choose alternative C compiler.
     // Optimization level depends on whether or not --release is passed
     // or implied.
-    #[cfg(target_env = "msvc")]
-    if env::var("CC").is_err() && which::which("clang-cl").is_ok() {
+    if target_env == "msvc" && env::var("CC").is_err() && which::which("clang-cl").is_ok() {
         env::set_var("CC", "clang-cl");
     }
     let mut cc = cc::Build::new();
@@ -29,24 +24,30 @@ fn main() {
     cc.warnings_into_errors(true);
     let mut files = vec![PathBuf::from("src/cpu/sloth256_189.c")];
 
-    // account for cross-compilation
-    let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
-    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
-
     if cfg!(feature = "no-asm") {
         println!("Compiling without assembly module");
         cc.define("__SLOTH256_189_NO_ASM__", None);
-    } else if target_arch.eq("x86_64") {
-        files.push(get_assembly_file());
+    } else if target_arch == "x86_64" {
+        if target_env == "msvc" {
+            files.push(PathBuf::from("src/cpu/win64/mod256-189-x86_64.asm"));
+        } else {
+            files.push(PathBuf::from("src/cpu/assembly.S"));
+        }
     }
 
-    cc.flag_if_supported("-mno-avx") // avoid costly transitions
+    if target_family == "wasm" {
+        cc.archiver("llvm-ar");
+    }
+
+    cc
+        // avoid costly transitions
+        .flag_if_supported("-mno-avx")
         .flag_if_supported("-fno-builtin-memcpy")
         .flag_if_supported("-Wno-unused-command-line-argument");
 
     cc.files(&files).compile("sloth256_189");
 
-    if target_os == "windows" && !cfg!(target_env = "msvc") {
+    if target_os == "windows" && target_env != "msvc" {
         return;
     }
 

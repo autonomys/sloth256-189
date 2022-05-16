@@ -78,15 +78,8 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      # Workaround as the newest version of MSVC does not support this latest version of CUDA, workaround for Windows 11/Windows Server 2022.
-      - name: Add MSVC compiler
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          toolset: 14.29
-        if: matrix.os == 'windows-2022'
-
       - name: CUDA toolchain
-        uses: Jimver/cuda-toolkit@v0.2.5
+        uses: Jimver/cuda-toolkit@v0.2.6
         if: runner.os == 'Linux' || runner.os == 'Windows'
 
       - name: OpenCL headers on Linux
@@ -101,7 +94,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ matrix.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ matrix.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}-cuda
 
       - name: cargo clippy
         uses: actions-rs/cargo@v1
@@ -115,3 +108,46 @@ jobs:
         with:
           command: build
           args: --all --features=cuda,opencl --verbose
+
+  wasm:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        rust:
+          - stable
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: Configure cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.toml') }}-wasm
+
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --no-default-features -- -D warnings
+
+      # Tests are not runnable as is for Wasm, so just build it
+      - name: cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --no-default-features --verbose
