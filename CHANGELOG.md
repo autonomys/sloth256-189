@@ -1,3 +1,9 @@
+# 0.3.1
+* WebAssembly (`no_std`) support
+
+# 0.3.0
+* Universal OpenCL support for AMD, Intel and Nvidia GPUs
+
 # 0.2.2
 * Fix FFI integration with C/CUDA libraries on Windows
 

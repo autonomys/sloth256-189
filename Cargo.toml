@@ -1,6 +1,6 @@
 [package]
 name = "sloth256-189"
-version = "0.3.0"
+version = "0.3.1"
 description = "Encoder/decoder for the Subspace Network Blockchain based on the SLOTH permutation"
 authors = [
     # CPU implementation in C and x86-64 Assembly
@@ -32,13 +32,13 @@ targets = []
 
 [dependencies]
 thiserror = "1.0"
-openmp-sys = "1.2.1"
+openmp-sys = { version = "1.2.1", optional = true }
 
 [dev-dependencies]
-criterion = {version = "0.3.5", features = ["html_reports"]}
-rand = "0.8.4"
+criterion = { version = "0.3.5", features = ["html_reports"] }
+getrandom = { version = "0.2.6", features = ["js"] }
+rand = { version = "0.8.4", default-features = false }
 rayon = "1.5.1"
-openmp-sys = "1.2.1"
 
 [build-dependencies]
 cc = "1.0.70"
@@ -46,11 +46,17 @@ glob = "0.3.0"
 which = "^4.2.2"
 
 [features]
-default = []
+default = ["std"]
+std = [
+    "rand/std",
+    "rand/std_rng",
+]
 # Force-disable ASM x86-64 implemenation for testing/benchmarking purposes
 no-asm = []
 cuda = []
-opencl = []
+opencl = [
+    "openmp-sys",
+]
 
 [[bench]]
 name = "cpu"
