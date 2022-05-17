@@ -1,7 +1,5 @@
 //! Universal CPU implementation
 
-use thiserror::Error;
-
 mod ffi {
     extern "C" {
         pub(super) fn sloth256_189_encode(
@@ -20,27 +18,44 @@ mod ffi {
 }
 
 /// CPU encoding errors
-#[derive(Debug, Error)]
+#[derive(Debug)]
+#[cfg_attr(feature = "thiserror", derive(thiserror::Error))]
 pub enum EncodeError {
     /// Piece argument is invalid, must be 4096-bytes piece
-    #[error("Piece argument is invalid, must be 4096-bytes piece, {0} bytes given")]
+    #[cfg_attr(
+        feature = "thiserror",
+        error("Piece argument is invalid, must be 4096-bytes piece, {0} bytes given")
+    )]
     InvalidPiece(usize),
     /// IV argument is invalid, must be 32-bytes IV
-    #[error("IV argument is invalid, must be 32-bytes IV, {0} bytes given")]
+    #[cfg_attr(
+        feature = "thiserror",
+        error("IV argument is invalid, must be 32-bytes IV, {0} bytes given")
+    )]
     InvalidIV(usize),
     /// Data bigger than the prime, this is not supported
-    #[error("Data bigger than the prime, this is not supported")]
+    #[cfg_attr(
+        feature = "thiserror",
+        error("Data bigger than the prime, this is not supported")
+    )]
     DataBiggerThanPrime,
 }
 
 /// CPU decoding errors
-#[derive(Debug, Error)]
+#[derive(Debug)]
+#[cfg_attr(feature = "thiserror", derive(thiserror::Error))]
 pub enum DecodeError {
     /// Piece argument is invalid, must be 4096-bytes piece
-    #[error("Piece argument is invalid, must be 4096-bytes piece, {0} bytes given")]
+    #[cfg_attr(
+        feature = "thiserror",
+        error("Piece argument is invalid, must be 4096-bytes piece, {0} bytes given")
+    )]
     InvalidPiece(usize),
     /// IV argument is invalid, must be 32-bytes IV
-    #[error("IV argument is invalid, must be 32-bytes IV, {0} bytes given")]
+    #[cfg_attr(
+        feature = "thiserror",
+        error("IV argument is invalid, must be 32-bytes IV, {0} bytes given")
+    )]
     InvalidIV(usize),
 }
 

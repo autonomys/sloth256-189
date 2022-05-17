@@ -1,3 +1,6 @@
+# 0.3.2
+* Fix `no_std` support
+
 # 0.3.1
 * WebAssembly (`no_std`) support
 
