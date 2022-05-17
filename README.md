@@ -15,6 +15,8 @@ This library consists of 3 major implementations:
 - CUDA (requires `cuda` feature to be enabled)
 - OpenCL (requires `opencl` feature to be enabled)
 
+WebAssembly (`no_std`) is also supported, but `llvm-ar` command needs to be available for `build.rs` to succeed in that case.
+
 ### CPU
 
 CPU Implementation contains 3 flavors:
