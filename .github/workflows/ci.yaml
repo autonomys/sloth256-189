@@ -100,14 +100,14 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --features=cuda,opencl -- -D warnings
+          args: --features=opencl -- -D warnings
 
       # We can't run CUDA tests in CI yet, so just test the build for now
       - name: cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all --features=cuda,opencl --verbose
+          args: --all --features=opencl --verbose
 
   wasm:
     strategy:

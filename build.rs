@@ -72,8 +72,7 @@ fn main() {
         println!("cargo:rustc-link-lib=OpenCL");
 
         let mut cuda_include: String = "".to_string();
-        if env::var("CUDA_PATH").is_ok() {
-            let cuda_path = env::var("CUDA_PATH").unwrap();
+        if let Ok(cuda_path) = env::var("CUDA_PATH") {
             println!("cargo:rustc-link-search={}/lib/x64", cuda_path);
 
             cuda_include = cuda_path + "/include";
