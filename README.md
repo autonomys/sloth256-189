@@ -10,9 +10,8 @@
 This is an adaptation of [SLOTH](https://eprint.iacr.org/2015/366) (slow-timed hash function) into a time-asymmetric
 permutation using a standard CBC block cipher.
 
-This library consists of 3 major implementations:
+This library consists of 2 major implementations:
 - CPU
-- CUDA (requires `cuda` feature to be enabled)
 - OpenCL (requires `opencl` feature to be enabled)
 
 WebAssembly (`no_std`) is also supported, but `llvm-ar` command needs to be available for `build.rs` to succeed in that case.
@@ -26,12 +25,6 @@ CPU Implementation contains 3 flavors:
 
 For more details, [README.md](src/cpu/README.md) under `src/cpu` can be referred.
 
-### CUDA
-
-CUDA implementation is heavily using low-level PTX code to achieve the maximum performance.
-
-Details of the CUDA implementation can be found in [README.md](src/cuda/README.md) under `src/cuda`.
-
 ### OpenCL
 
 OpenCL is a universal implementation that supports AMD (ROCm), Nvidia (CUDA) and Intel GPUs, including support for
@@ -43,14 +36,12 @@ Details of the OpenCL implementation can be found in [mod.rs](src/opencl/mod.rs)
 
 Simply run `cargo test` at the root folder
 
-- use `cargo test --features=cuda` for enabling cuda tests (CUDA toolkit must be installed on your device)
 - use `cargo test --features=opencl` for enabling opencl tests (openCL drivers must be installed on your device)
 
 ### How to benchmark
 
 Simply run `cargo bench` at the root folder
 
-- use `cargo bench --features=cuda` for enabling cuda tests (CUDA toolkit must be installed on your device)
 - use `cargo bench --features=opencl` for enabling opencl tests (openCL drivers must be installed on your device)
 
 ### License
