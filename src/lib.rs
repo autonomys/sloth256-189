@@ -9,7 +9,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod cpu;
-#[cfg(feature = "cuda")]
-pub mod cuda;
 #[cfg(feature = "opencl")]
 pub mod opencl;

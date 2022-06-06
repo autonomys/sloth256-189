@@ -26,7 +26,7 @@ include = [
 ]
 
 [package.metadata.docs.rs]
-features = ["cuda", "opencl"]
+features = ["opencl"]
 default-target = "x86_64-unknown-linux-gnu"
 targets = []
 
@@ -54,9 +54,6 @@ std = [
 ]
 # Force-disable ASM x86-64 implemenation for testing/benchmarking purposes
 no-asm = []
-cuda = [
-    "std",
-]
 opencl = [
     "openmp-sys",
     "std",
@@ -65,11 +62,6 @@ opencl = [
 [[bench]]
 name = "cpu"
 harness = false
-
-[[bench]]
-name = "cuda"
-harness = false
-required-features = ["cuda"]
 
 [[bench]]
 name = "opencl"
