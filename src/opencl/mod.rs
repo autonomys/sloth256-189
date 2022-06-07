@@ -246,6 +246,11 @@ pub struct OpenClEncoder {
     instances: *const ffi::EncodeOpenCLInstances,
 }
 
+// SAFETY: all fields from C land are `Send`
+unsafe impl Send for OpenClEncoder {}
+// SAFETY: all fields from C land are `Sync`
+unsafe impl Sync for OpenClEncoder {}
+
 impl OpenClEncoder {
     /// Create new OpenCL codec instance for batch encoding on GPU.
     ///
