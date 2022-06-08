@@ -1,3 +1,6 @@
+# 0.4.0
+* Separate CUDA support removed, OpenCL supports CUDA internally already
+
 # 0.3.2
 * Fix `no_std` support
 
