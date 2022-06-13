@@ -246,10 +246,8 @@ pub struct OpenClEncoder {
     instances: *const ffi::EncodeOpenCLInstances,
 }
 
-// SAFETY: all fields from C land are `Send`
+// SAFETY: `EncodeOpenCLInstances` pointer is heap-allocated and will live as long as needed
 unsafe impl Send for OpenClEncoder {}
-// SAFETY: all fields from C land are `Sync`
-unsafe impl Sync for OpenClEncoder {}
 
 impl OpenClEncoder {
     /// Create new OpenCL codec instance for batch encoding on GPU.
@@ -324,6 +322,8 @@ impl OpenClEncoder {
 
         if self.batch != Some(batch) {
             self.recalculate_work_division_configuration(batch)?;
+
+            self.batch.replace(batch);
         }
 
         let return_code = unsafe {
