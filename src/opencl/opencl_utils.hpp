@@ -46,21 +46,26 @@ void getAllPlatforms(cl_platform_id*& platforms, cl_uint& num_platforms, cl_int&
     err = clGetPlatformIDs(num_platforms, platforms, NULL); if (err != CL_SUCCESS) return;
 }
 
-std::string getPlatformName(cl_platform_id& platform_id, cl_int& err) {
+bool isSupportedOpenClVersion(cl_platform_id& platform_id, cl_int& err) {
+    size_t platform_version_length;
+    err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, 0, NULL, &platform_version_length);
+    if (err != CL_SUCCESS) return false;
 
-    std::string platform_name = "";
+    std::string platform_version = "";
+    platform_version.resize(platform_version_length);
 
-    size_t platform_name_length;
-    err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, 0, NULL, &platform_name_length);
-    if (err != CL_SUCCESS) return platform_name;
+    err = clGetPlatformInfo(platform_id, CL_PLATFORM_VERSION, platform_version_length,
+                            (void*)platform_version.data(), NULL);
+    if (err != CL_SUCCESS) return false;
 
-    platform_name.resize(platform_name_length);
+    // Extracts major OpenCL version number out of string like "OpenCL 1.1 Mesa 22.0.1"
+    std::string opencl_major_version_string = platform_version.substr(
+        platform_version.find(' ') + 1,
+        platform_version.find('.') - (platform_version.find(' ') + 1)
+    );
+    unsigned long opencl_major_version = std::stoul(opencl_major_version_string, nullptr, 10);
 
-    err = clGetPlatformInfo(platform_id, CL_PLATFORM_NAME, platform_name_length,
-                            (void*)platform_name.data(), NULL);
-    if (err != CL_SUCCESS) return platform_name;;
-
-    return platform_name;
+    return opencl_major_version >= 2;
 }
 
 std::string getDeviceName(cl_device_id& device_id, cl_int& err) {
@@ -108,9 +113,10 @@ std::vector<cl_device_id> getAllGPUs(cl_int& err) {
     if (err != CL_SUCCESS) return devices;
 
     for (size_t i = 0; i < num_platforms; i++) {
+        bool is_supported_opencl_version = isSupportedOpenClVersion(platforms[i], err);
 
-        std::string platform_name = getPlatformName(platforms[i], err);
         if (err != CL_SUCCESS) return devices;
+        if (!is_supported_opencl_version) continue;
 
         cl_uint num_devices;
 
@@ -126,12 +132,6 @@ std::vector<cl_device_id> getAllGPUs(cl_int& err) {
             std::string device_vendor = getDeviceVendor(devices_curr[j], err);
             if (err != CL_SUCCESS) return devices;
             std::transform(device_vendor.begin(), device_vendor.end(), device_vendor.begin(), ::tolower);
-
-            // Open Source AMD supports only OpenCL 1.1 and not working for our use case, while Intel is fine
-            if (platform_name.find("Clover") != std::string::npos &&
-                device_vendor.find("amd") != std::string::npos) {
-                continue;
-            }
 
             if (device_vendor.find("nvidia") == std::string::npos &&
                 device_vendor.find("amd") == std::string::npos &&
@@ -165,10 +165,6 @@ std::vector<cl_device_id> getAllNvidiaGPUs(cl_int& err) {
     if (err != CL_SUCCESS) return devices;
 
     for (size_t i = 0; i < num_platforms; i++) {
-
-        std::string platform_name = getPlatformName(platforms[i], err);
-        if (err != CL_SUCCESS) return devices;
-
         cl_uint num_devices;
 
         err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
@@ -213,14 +209,10 @@ std::vector<cl_device_id> getAllAMDGPUs(cl_int& err) {
     if (err != CL_SUCCESS) return devices;
 
     for (size_t i = 0; i < num_platforms; i++) {
+        bool is_supported_opencl_version = isSupportedOpenClVersion(platforms[i], err);
 
-        std::string platform_name = getPlatformName(platforms[i], err);
         if (err != CL_SUCCESS) return devices;
-
-        // Open Source AMD supports only OpenCL 1.1 and not working for our use case
-        if (platform_name.find("Clover") != std::string::npos) {
-            continue;
-        }
+        if (!is_supported_opencl_version) continue;
 
         cl_uint num_devices;
 
@@ -267,10 +259,6 @@ std::vector<cl_device_id> getAllIntelGPUs(cl_int& err) {
     if (err != CL_SUCCESS) return devices;
 
     for (size_t i = 0; i < num_platforms; i++) {
-
-        std::string platform_name = getPlatformName(platforms[i], err);
-        if (err != CL_SUCCESS) return devices;
-
         cl_uint num_devices;
 
         err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
